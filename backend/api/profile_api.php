@@ -70,32 +70,52 @@ try {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SendGrid helper — replaces PHPMailer entirely
+// SendGrid helper — HTML + plain-text, anti-spam hardened
 // ─────────────────────────────────────────────────────────────────────────────
-function sendEmailViaSendGrid(string $toEmail, string $subject, string $body): bool
-{
+function sendEmailViaSendGrid(
+    string $toEmail,
+    string $toName,
+    string $subject,
+    string $htmlBody,
+    string $plainBody
+): bool {
     $apiKey = getenv('SENDGRID_API_KEY');
     if (!$apiKey) {
-        error_log('SendGrid: SENDGRID_API_KEY is not set.');
+        error_log('[ProfileAPI] SendGrid: SENDGRID_API_KEY is not set.');
         return false;
     }
 
     $fromAddress = getenv('MAIL_FROM_ADDRESS') ?: getenv('SENDGRID_FROM_EMAIL') ?: '';
     $fromName    = getenv('MAIL_FROM_NAME') ?: 'QA System';
+    $replyTo     = getenv('MAIL_REPLY_TO') ?: $fromAddress;
 
     if (!$fromAddress) {
-        error_log('SendGrid: MAIL_FROM_ADDRESS is not set.');
+        error_log('[ProfileAPI] SendGrid: MAIL_FROM_ADDRESS is not set.');
         return false;
     }
 
     $payload = json_encode([
         'personalizations' => [
-            ['to' => [['email' => $toEmail]]],
+            ['to' => [['email' => $toEmail, 'name' => $toName]]],
         ],
-        'from'    => ['email' => $fromAddress, 'name' => $fromName],
-        'subject' => $subject,
-        'content' => [
-            ['type' => 'text/plain', 'value' => $body],
+        'from'     => ['email' => $fromAddress, 'name' => $fromName],
+        // Avoid spam flags — always include a reply_to on transactional mail
+        'reply_to' => ['email' => $replyTo, 'name' => $fromName],
+        'subject'  => $subject,
+        'content'  => [
+            ['type' => 'text/plain', 'value' => $plainBody],
+            ['type' => 'text/html',  'value' => $htmlBody],
+        ],
+        // Disable click & open tracking — SendGrid rewrites links through its
+        // own tracking domain, which spam filters flag on transactional mail
+        'tracking_settings' => [
+            'click_tracking' => ['enable' => false],
+            'open_tracking'  => ['enable' => false],
+        ],
+        // Mark as transactional so SendGrid bypasses unsubscribe list
+        // management — required for password/verification emails
+        'mail_settings' => [
+            'bypass_list_management' => ['enable' => true],
         ],
     ]);
 
@@ -117,12 +137,12 @@ function sendEmailViaSendGrid(string $toEmail, string $subject, string $body): b
     curl_close($ch);
 
     if ($curlError) {
-        error_log('SendGrid curl error: ' . $curlError);
+        error_log('[ProfileAPI] SendGrid curl error: ' . $curlError);
         return false;
     }
 
     if ($statusCode < 200 || $statusCode >= 300) {
-        error_log('SendGrid HTTP ' . $statusCode . ': ' . $response);
+        error_log('[ProfileAPI] SendGrid HTTP ' . $statusCode . ': ' . $response);
         return false;
     }
 
@@ -130,7 +150,65 @@ function sendEmailViaSendGrid(string $toEmail, string $subject, string $body): b
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// verifyGmail — now just validates the env vars are set (no SMTP test needed)
+// Build the styled HTML email (mirrors the forgot-password template)
+// ─────────────────────────────────────────────────────────────────────────────
+function buildVerificationEmail(string $toName, string $code): array
+{
+    $year = date('Y');
+
+    $html = <<<HTML
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f3ff;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 0;">
+    <tr><td align="center">
+      <table width="480" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,231,.10);">
+        <tr>
+          <td style="background:linear-gradient(135deg,#6c5ce7,#a78bfa);padding:32px 40px;text-align:center;">
+            <div style="font-size:2rem;margin-bottom:8px;">🔒</div>
+            <h1 style="color:#fff;margin:0;font-size:1.2rem;font-weight:700;">Password Change Verification</h1>
+            <p style="color:rgba(255,255,255,.85);margin:6px 0 0;font-size:.83rem;">QA Management System</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px 40px;">
+            <p style="color:#374151;margin:0 0 14px;font-size:.95rem;">Hi <strong>{$toName}</strong>,</p>
+            <p style="color:#374151;margin:0 0 24px;font-size:.9rem;line-height:1.6;">
+              We received a request to change your account password. Use the verification
+              code below to confirm your identity. This code is valid for <strong>10 minutes</strong>.
+            </p>
+            <div style="background:#f5f3ff;border:2px solid #ede9fd;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
+              <p style="color:#6b7280;margin:0 0 8px;font-size:.75rem;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Your Verification Code</p>
+              <div style="font-size:2.4rem;font-weight:800;letter-spacing:12px;color:#6c5ce7;font-family:'Courier New',monospace;">{$code}</div>
+            </div>
+            <p style="color:#6b7280;font-size:.82rem;margin:0 0 6px;">If you did not request a password change, please ignore this email — your account remains safe.</p>
+            <p style="color:#6b7280;font-size:.82rem;margin:0;"><strong>Never share this code</strong> with anyone.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="background:#f9fafb;border-top:1px solid #f3f4f6;padding:14px 40px;text-align:center;">
+            <p style="color:#9ca3af;font-size:.73rem;margin:0;">&copy; {$year} Quality Assurance Management System &bull; All rights reserved</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+HTML;
+
+    $plain = "Hi {$toName},\n\n"
+           . "Your password change verification code is: {$code}\n\n"
+           . "This code expires in 10 minutes.\n\n"
+           . "If you did not request a password change, you can safely ignore this email.\n\n"
+           . "— QA System";
+
+    return ['html' => $html, 'plain' => $plain];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// verifyGmail — validates env vars are set (no SMTP test needed)
 // ─────────────────────────────────────────────────────────────────────────────
 function verifyGmail(array $data): void
 {
@@ -290,7 +368,7 @@ function sendVerificationCode(): void
     }
 
     $conn = getDBConnection();
-    $stmt = $conn->prepare("SELECT email FROM qa_users WHERE user_id = ?");
+    $stmt = $conn->prepare("SELECT full_name, email FROM qa_users WHERE user_id = ?");
     $stmt->bind_param('i', $userId);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
@@ -307,19 +385,25 @@ function sendVerificationCode(): void
     }
 
     $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+    // Use bcrypt for the stored hash (this is a user-initiated flow, not
+    // time-sensitive like login — the slight delay on verify is acceptable)
     $_SESSION['pwd_verify_code']     = password_hash($code, PASSWORD_BCRYPT);
     $_SESSION['pwd_verify_expires']  = time() + 600;
     $_SESSION['pwd_verify_attempts'] = 0;
     unset($_SESSION['pwd_change_verified'], $_SESSION['pwd_change_verified_at']);
 
+    $toName  = $row['full_name'] ?: 'User';
+    $toEmail = $row['email'];
+
+    ['html' => $htmlBody, 'plain' => $plainBody] = buildVerificationEmail($toName, $code);
+
     $sent = sendEmailViaSendGrid(
-        $row['email'],
-        'Your Password Change Verification Code',
-        "Hello,\n\n" .
-        "Your verification code is: {$code}\n\n" .
-        "This code expires in 10 minutes.\n\n" .
-        "If you did not request a password change, you can safely ignore this email.\n\n" .
-        "— QA System"
+        $toEmail,
+        $toName,
+        'Your Password Change Verification Code — QA Management System',
+        $htmlBody,
+        $plainBody
     );
 
     if (!$sent) {
@@ -327,7 +411,7 @@ function sendVerificationCode(): void
         return;
     }
 
-    jsonResponse(true, 'Verification code sent.', ['data' => ['email' => $row['email']]]);
+    jsonResponse(true, 'Verification code sent.', ['data' => ['email' => $toEmail]]);
 }
 
 function verifyPasswordCode(array $data): void

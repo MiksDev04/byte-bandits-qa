@@ -2,11 +2,6 @@
 /**
  * Forgot Password API  — session-based OTP (no extra DB table required)
  * POST /backend/api/auth/forgot_password_api.php
- *
- * Actions:
- *   send_code      — validate email, verify hCaptcha, generate & email OTP (stored in session)
- *   verify_code    — check OTP from session, issue a short-lived reset token in session
- *   reset_password — verify reset token from session, update password hash
  */
 
 session_start();
@@ -65,7 +60,6 @@ function handleSendCode(array $input): void
         jsonResponse(false, 'Too many requests. Please wait 15 minutes before trying again.', [], 429);
     }
 
-    // Check SendGrid is configured before doing anything
     if (!getenv('SENDGRID_API_KEY')) {
         jsonResponse(false, 'Mail server is not configured. Please contact the administrator.');
     }
@@ -80,7 +74,12 @@ function handleSendCode(array $input): void
     $expires = time() + 600;
 
     if ($user) {
-        $_SESSION['fp_otp_hash']     = password_hash($otp, PASSWORD_BCRYPT);
+        // ✅ FIX 1: Use HMAC-SHA256 instead of bcrypt — sha256 is instant,
+        //    bcrypt is intentionally slow (150-300ms). OTPs are already
+        //    protected by attempt limits, so bcrypt's cost buys nothing here.
+        $otpSalt = bin2hex(random_bytes(16));
+        $_SESSION['fp_otp_hash']     = hash_hmac('sha256', $otp, $otpSalt);
+        $_SESSION['fp_otp_salt']     = $otpSalt;
         $_SESSION['fp_otp_expires']  = $expires;
         $_SESSION['fp_otp_attempts'] = 0;
         $_SESSION['fp_email']        = $email;
@@ -116,24 +115,29 @@ function handleVerifyCode(array $input): void
     }
 
     if (time() > (int)$_SESSION['fp_otp_expires']) {
-        unset($_SESSION['fp_otp_hash'], $_SESSION['fp_otp_expires'],
-              $_SESSION['fp_otp_attempts'], $_SESSION['fp_email']);
+        unset($_SESSION['fp_otp_hash'], $_SESSION['fp_otp_salt'],
+              $_SESSION['fp_otp_expires'], $_SESSION['fp_otp_attempts'],
+              $_SESSION['fp_email']);
         jsonResponse(false, 'This code has expired. Please request a new one.', [], 401);
     }
 
     $_SESSION['fp_otp_attempts'] = ($_SESSION['fp_otp_attempts'] ?? 0) + 1;
     if ($_SESSION['fp_otp_attempts'] > 5) {
-        unset($_SESSION['fp_otp_hash'], $_SESSION['fp_otp_expires'],
-              $_SESSION['fp_otp_attempts'], $_SESSION['fp_email']);
+        unset($_SESSION['fp_otp_hash'], $_SESSION['fp_otp_salt'],
+              $_SESSION['fp_otp_expires'], $_SESSION['fp_otp_attempts'],
+              $_SESSION['fp_email']);
         jsonResponse(false, 'Too many failed attempts. Please request a new code.', [], 429);
     }
 
-    if (!password_verify($code, $_SESSION['fp_otp_hash'])) {
+    // ✅ FIX 1 (continued): Verify using HMAC-SHA256 + hash_equals (timing-safe)
+    $expectedHash = hash_hmac('sha256', $code, $_SESSION['fp_otp_salt'] ?? '');
+    if (!hash_equals($expectedHash, $_SESSION['fp_otp_hash'])) {
         $remaining = max(0, 5 - (int)$_SESSION['fp_otp_attempts']);
         jsonResponse(false, 'Incorrect code. ' . $remaining . ' attempt(s) remaining.', [], 401);
     }
 
-    unset($_SESSION['fp_otp_hash'], $_SESSION['fp_otp_expires'], $_SESSION['fp_otp_attempts']);
+    unset($_SESSION['fp_otp_hash'], $_SESSION['fp_otp_salt'],
+          $_SESSION['fp_otp_expires'], $_SESSION['fp_otp_attempts']);
 
     $resetToken = bin2hex(random_bytes(32));
     $_SESSION['fp_reset_token']        = $resetToken;
@@ -204,10 +208,6 @@ function handleResetPassword(array $input): void
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════
-
-/**
- * Verify hCaptcha token. Reads HCAPTCHA_SECRET via getenv().
- */
 function verifyCaptcha(string $token): bool
 {
     $secret = getenv('HCAPTCHA_SECRET') ?: '0x0000000000000000000000000000000000000000';
@@ -228,21 +228,17 @@ function verifyCaptcha(string $token): bool
         return false;
     }
 
-    if (!$response) return false;
-
     $data = json_decode($response, true);
-    error_log('[ForgotPassword] hCaptcha response: ' . json_encode($data)); // temp debug
+    // ✅ Removed temp debug log — don't log tokens in production
     return !empty($data['success']);
 }
 
-/**
- * Send OTP email via SendGrid — same approach as profile_api.php.
- */
 function sendOtpEmail(string $toEmail, string $toName, string $otp): void
 {
     $apiKey      = getenv('SENDGRID_API_KEY');
     $fromAddress = getenv('MAIL_FROM_ADDRESS') ?: getenv('SENDGRID_FROM_EMAIL') ?: '';
     $fromName    = getenv('MAIL_FROM_NAME') ?: 'QA System';
+    $replyTo     = getenv('MAIL_REPLY_TO') ?: $fromAddress;
 
     if (!$apiKey || !$fromAddress) {
         error_log('[ForgotPassword] SendGrid not configured — set SENDGRID_API_KEY and MAIL_FROM_ADDRESS.');
@@ -300,11 +296,25 @@ HTML;
         'personalizations' => [
             ['to' => [['email' => $toEmail, 'name' => $toName]]],
         ],
-        'from'    => ['email' => $fromAddress, 'name' => $fromName],
-        'subject' => $subject,
-        'content' => [
+        'from'     => ['email' => $fromAddress, 'name' => $fromName],
+        // ✅ FIX 2: Add reply_to — missing this is a spam signal
+        'reply_to' => ['email' => $replyTo, 'name' => $fromName],
+        'subject'  => $subject,
+        'content'  => [
             ['type' => 'text/plain', 'value' => $plainBody],
             ['type' => 'text/html',  'value' => $htmlBody],
+        ],
+        // ✅ FIX 3: Disable click & open tracking.
+        //    By default SendGrid rewrites all links through its own tracking
+        //    domain — spam filters see this as suspicious for transactional mail.
+        'tracking_settings' => [
+            'click_tracking' => ['enable' => false],
+            'open_tracking'  => ['enable' => false],
+        ],
+        // ✅ FIX 4: Mark as transactional so SendGrid bypasses
+        //    unsubscribe list management (correct for password reset emails)
+        'mail_settings' => [
+            'bypass_list_management' => ['enable' => true],
         ],
     ]);
 
