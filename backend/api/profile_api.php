@@ -4,6 +4,9 @@
  * backend/api/profile_api.php
  */
 
+// From backend/api/profile_api.php
+// __DIR__ = /var/www/html/backend/api
+// vendor  = /var/www/html/vendor
 $_autoloadPath = __DIR__ . '/../../vendor/autoload.php';
 if (!file_exists($_autoloadPath)) {
     error_log('Autoloader not found at: ' . $_autoloadPath);
@@ -212,10 +215,7 @@ function sendVerificationCode(): void {
         return;
     }
 
-    if (!class_exists(PHPMailer::class)) {
-        jsonResponse(false, 'PHPMailer is not installed.');
-        return;
-    }
+ 
 
     $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     $_SESSION['pwd_verify_code']     = password_hash($code, PASSWORD_BCRYPT);
