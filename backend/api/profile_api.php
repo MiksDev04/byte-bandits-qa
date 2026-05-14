@@ -258,7 +258,14 @@ function sendVerificationCode(): void
     unset($_SESSION['pwd_change_verified'], $_SESSION['pwd_change_verified_at']);
 
     try {
-        $mail             = new PHPMailer(true);
+        $mail = new PHPMailer(true);
+
+        // ← DEBUG MUST BE HERE, before everything else
+        $mail->SMTPDebug  = 2;
+        $mail->Debugoutput = function ($str, $level) {
+            error_log('SMTP: ' . $str);
+        };
+
         $mail->isSMTP();
         $mail->Host       = 'smtp.gmail.com';
         $mail->SMTPAuth   = true;
@@ -279,11 +286,7 @@ function sendVerificationCode(): void
             "This code expires in 10 minutes.\n\n" .
             "If you did not request a password change, you can safely ignore this email.\n\n" .
             "— QA System";
-        $mail->send();
-        $mail->SMTPDebug  = 2;
-        $mail->Debugoutput = function ($str, $level) {
-            error_log('SMTP: ' . $str);
-        };
+        $mail->send(); // ← send() is LAST
     } catch (MailerException $e) {
         error_log('sendVerificationCode mailer error: ' . $e->getMessage());
         jsonResponse(false, 'Failed to send verification email. Please try again later.');
