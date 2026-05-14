@@ -19,8 +19,7 @@ COPY . .
 
 # Install Composer dependencies (if composer.lock exists)
 RUN composer install --no-dev --optimize-autoloader --no-interaction \
-    && ls vendor/ \
-    && echo "PHPMailer check:" && ls vendor/phpmailer || echo "PHPMailer MISSING from vendor"
+    && composer dump-autoload --optimize --no-dev
 
 # Fix permissions
 RUN chown -R www-data:www-data /var/www/html \
