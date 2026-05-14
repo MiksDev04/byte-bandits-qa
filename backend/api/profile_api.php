@@ -9,17 +9,6 @@ session_start();
 // 1. Load database config FIRST (defines jsonResponse)
 require_once __DIR__ . '/../config/database.php';
 
-// 2. Now load autoloader
-$_autoloadPath = __DIR__ . '/../../vendor/autoload.php';
-if (!file_exists($_autoloadPath)) {
-    error_log('Autoloader not found at: ' . $_autoloadPath);
-    jsonResponse(false, 'Server misconfiguration: autoloader missing.', [], 500);
-}
-require_once $_autoloadPath;
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception as MailerException;
-
 // 3. Headers
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -31,12 +20,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// 4. Auth guard (jsonResponse is now available)
+// 4. Auth guard
 if (empty($_SESSION['logged_in'])) {
     jsonResponse(false, 'Unauthorized access', [], 401);
 }
-
-// rest of the file stays the same...
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? null;
@@ -67,6 +54,8 @@ try {
                 sendVerificationCode();
             } elseif ($postAction === 'verify_code') {
                 verifyPasswordCode($data);
+            } elseif ($postAction === 'verify_gmail') {
+                verifyGmail($data);
             } else {
                 jsonResponse(false, 'Invalid action');
             }
@@ -79,6 +68,86 @@ try {
     error_log('Profile API Error: ' . $e->getMessage());
     jsonResponse(false, 'Server error occurred', [], 500);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SendGrid helper — replaces PHPMailer entirely
+// ─────────────────────────────────────────────────────────────────────────────
+function sendEmailViaSendGrid(string $toEmail, string $subject, string $body): bool
+{
+    $apiKey = getenv('SENDGRID_API_KEY');
+    if (!$apiKey) {
+        error_log('SendGrid: SENDGRID_API_KEY is not set.');
+        return false;
+    }
+
+    $fromAddress = getenv('MAIL_FROM_ADDRESS') ?: getenv('SENDGRID_FROM_EMAIL') ?: '';
+    $fromName    = getenv('MAIL_FROM_NAME') ?: 'QA System';
+
+    if (!$fromAddress) {
+        error_log('SendGrid: MAIL_FROM_ADDRESS is not set.');
+        return false;
+    }
+
+    $payload = json_encode([
+        'personalizations' => [
+            ['to' => [['email' => $toEmail]]],
+        ],
+        'from'    => ['email' => $fromAddress, 'name' => $fromName],
+        'subject' => $subject,
+        'content' => [
+            ['type' => 'text/plain', 'value' => $body],
+        ],
+    ]);
+
+    $ch = curl_init('https://api.sendgrid.com/v3/mail/send');
+    curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $payload,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 15,
+        CURLOPT_HTTPHEADER     => [
+            'Authorization: Bearer ' . $apiKey,
+            'Content-Type: application/json',
+        ],
+    ]);
+
+    $response   = curl_exec($ch);
+    $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError  = curl_error($ch);
+    curl_close($ch);
+
+    if ($curlError) {
+        error_log('SendGrid curl error: ' . $curlError);
+        return false;
+    }
+
+    if ($statusCode < 200 || $statusCode >= 300) {
+        error_log('SendGrid HTTP ' . $statusCode . ': ' . $response);
+        return false;
+    }
+
+    return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// verifyGmail — now just validates the env vars are set (no SMTP test needed)
+// ─────────────────────────────────────────────────────────────────────────────
+function verifyGmail(array $data): void
+{
+    $apiKey      = getenv('SENDGRID_API_KEY');
+    $fromAddress = getenv('MAIL_FROM_ADDRESS');
+
+    if (!$apiKey || !$fromAddress) {
+        jsonResponse(false, 'SendGrid is not configured on the server. Please contact the administrator.');
+        return;
+    }
+
+    jsonResponse(true, 'Email service is configured and ready.', [
+        'gmail_address' => $fromAddress,
+    ]);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 function getProfile(): void
 {
@@ -100,11 +169,9 @@ function getProfile(): void
 
     $user['activity'] = getActivitySummary($userId);
 
-    $gmailConnected          = !empty(getenv('MAIL_USERNAME')) && !empty(getenv('MAIL_PASSWORD'));
+    $gmailConnected          = !empty(getenv('SENDGRID_API_KEY')) && !empty(getenv('MAIL_FROM_ADDRESS'));
     $user['gmail_connected'] = $gmailConnected;
-    $user['gmail_address']   = $gmailConnected
-        ? (getenv('MAIL_FROM_ADDRESS') ?: getenv('MAIL_USERNAME'))
-        : null;
+    $user['gmail_address']   = $gmailConnected ? getenv('MAIL_FROM_ADDRESS') : null;
 
     jsonResponse(true, 'Profile loaded', ['data' => $user]);
 }
@@ -217,8 +284,6 @@ function changePassword(array $data): void
 
 function sendVerificationCode(): void
 {
-
-
     $userId = $_SESSION['user_id'] ?? 0;
     if ($userId <= 0) {
         jsonResponse(false, 'Invalid session');
@@ -236,20 +301,10 @@ function sendVerificationCode(): void
         return;
     }
 
-    if (!getenv('MAIL_USERNAME') || !getenv('MAIL_PASSWORD')) {
-        jsonResponse(false, 'Mail server is not configured.');
+    if (!getenv('SENDGRID_API_KEY')) {
+        jsonResponse(false, 'Mail server is not configured. Please contact the administrator.');
         return;
     }
-
-    if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
-        error_log('PHPMailer not found. Autoload path: ' . __DIR__ . '/../../vendor/autoload.php');
-        jsonResponse(false, 'Mail service unavailable. Contact administrator.');
-        return;
-    }
-
-    // rest stays the same...
-
-
 
     $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     $_SESSION['pwd_verify_code']     = password_hash($code, PASSWORD_BCRYPT);
@@ -257,38 +312,17 @@ function sendVerificationCode(): void
     $_SESSION['pwd_verify_attempts'] = 0;
     unset($_SESSION['pwd_change_verified'], $_SESSION['pwd_change_verified_at']);
 
-    try {
-        $mail = new PHPMailer(true);
+    $sent = sendEmailViaSendGrid(
+        $row['email'],
+        'Your Password Change Verification Code',
+        "Hello,\n\n" .
+        "Your verification code is: {$code}\n\n" .
+        "This code expires in 10 minutes.\n\n" .
+        "If you did not request a password change, you can safely ignore this email.\n\n" .
+        "— QA System"
+    );
 
-        // ← DEBUG MUST BE HERE, before everything else
-        $mail->SMTPDebug  = 2;
-        $mail->Debugoutput = function ($str, $level) {
-            error_log('SMTP: ' . $str);
-        };
-
-        $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = getenv('MAIL_USERNAME');
-        $mail->Password   = getenv('MAIL_PASSWORD');
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 587;
-        $mail->Timeout    = 10;
-        $mail->setFrom(
-            getenv('MAIL_FROM_ADDRESS') ?: getenv('MAIL_USERNAME'),
-            getenv('MAIL_FROM_NAME')    ?: 'QA System'
-        );
-        $mail->addAddress($row['email']);
-        $mail->Subject = 'Your Password Change Verification Code';
-        $mail->Body    =
-            "Hello,\n\n" .
-            "Your verification code is: {$code}\n\n" .
-            "This code expires in 10 minutes.\n\n" .
-            "If you did not request a password change, you can safely ignore this email.\n\n" .
-            "— QA System";
-        $mail->send(); // ← send() is LAST
-    } catch (MailerException $e) {
-        error_log('sendVerificationCode mailer error: ' . $e->getMessage());
+    if (!$sent) {
         jsonResponse(false, 'Failed to send verification email. Please try again later.');
         return;
     }
