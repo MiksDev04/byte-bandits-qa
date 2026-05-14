@@ -17,8 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once '../config/api_auth.php'; // ← add
 requireApiKey();  
 
-$LMS_API_URL = getenv('LMS_API_URL');
-$LMS_API_KEY = getenv('LMS_API_KEY');
+define('LMS_API_URL', getenv('LMS_API_URL'));
+define('LMS_API_KEY', getenv('LMS_API_KEY'));
 
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
