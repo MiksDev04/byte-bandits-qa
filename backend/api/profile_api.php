@@ -8,6 +8,8 @@ session_start();
 
 // 1. Load database config FIRST (defines jsonResponse)
 require_once __DIR__ . '/../config/database.php';
+require_once '../config/api_auth.php'; // ← add
+requireApiKey();  
 
 // 3. Headers
 header('Content-Type: application/json');

@@ -7,6 +7,8 @@
 session_start();
 
 require_once '../../config/database.php';
+require_once '../config/api_auth.php'; // ← add
+requireApiKey();  
 
 header('Content-Type: application/json');
 header('X-Content-Type-Options: nosniff');

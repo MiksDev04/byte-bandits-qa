@@ -25,6 +25,8 @@ $pageTitle = 'Survey Management';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="x-api-key" content="<?= htmlspecialchars(getenv('APP_API_KEY'), ENT_QUOTES, 'UTF-8') ?>">
+
     <title><?= htmlspecialchars($pageTitle) ?> — QA System</title>
 
     <link rel="stylesheet"
@@ -996,10 +998,10 @@ $pageTitle = 'Survey Management';
                             const optionsList = Array.isArray(q.options) && q.options.length > 0 ?
                                 '<div class="text-muted-qa small">Options:<br>' +
                                 q.options
-                                    .map(o => getOptionText(o))
-                                    .filter(Boolean)
-                                    .map(option => '• ' + escapeHtml(option))
-                                    .join('<br>') +
+                                .map(o => getOptionText(o))
+                                .filter(Boolean)
+                                .map(option => '• ' + escapeHtml(option))
+                                .join('<br>') +
                                 '</div>' :
                                 '';
 

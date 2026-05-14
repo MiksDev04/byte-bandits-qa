@@ -14,9 +14,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once '../config/database.php';
-
 session_start();
+require_once '../config/database.php';
+require_once '../config/api_auth.php'; // ← add
+requireApiKey();  
+
 
 // Check authentication
 if (empty($_SESSION['logged_in'])) {

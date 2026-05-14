@@ -12,6 +12,7 @@ $.ajaxSetup({
     'X-API-Key': API_KEY
   }
 });
+
 /* ── Toast System ───────────────────────────────────────────── */
 const QAToast = (() => {
   let container;

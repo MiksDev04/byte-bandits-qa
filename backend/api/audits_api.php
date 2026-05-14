@@ -11,6 +11,8 @@ header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
 header('Access-Control-Allow-Headers: Content-Type');
 
 require_once '../config/database.php';
+require_once '../config/api_auth.php'; // ← add
+requireApiKey();  
 
 // Start session for authentication check
 session_start();

@@ -15,6 +15,8 @@ $pageTitle = 'QA System User Manual';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="x-api-key" content="<?= htmlspecialchars(getenv('APP_API_KEY'), ENT_QUOTES, 'UTF-8') ?>">
+
     <title><?= htmlspecialchars($pageTitle) ?> - QA System</title>
 
     <!-- Bootstrap -->
@@ -29,7 +31,7 @@ $pageTitle = 'QA System User Manual';
 
     <style>
         /* ── Manual Page Specific Styles ───────────────────────── */
-        
+
         /* Table of Contents Panel */
         .toc-panel {
             width: 260px;
@@ -237,16 +239,40 @@ $pageTitle = 'QA System User Manual';
         }
 
         @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(12px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        .manual-section:nth-child(1) { animation-delay: .05s; }
-        .manual-section:nth-child(2) { animation-delay: .1s; }
-        .manual-section:nth-child(3) { animation-delay: .15s; }
-        .manual-section:nth-child(4) { animation-delay: .2s; }
-        .manual-section:nth-child(5) { animation-delay: .25s; }
-        .manual-section:nth-child(6) { animation-delay: .3s; }
+        .manual-section:nth-child(1) {
+            animation-delay: .05s;
+        }
+
+        .manual-section:nth-child(2) {
+            animation-delay: .1s;
+        }
+
+        .manual-section:nth-child(3) {
+            animation-delay: .15s;
+        }
+
+        .manual-section:nth-child(4) {
+            animation-delay: .2s;
+        }
+
+        .manual-section:nth-child(5) {
+            animation-delay: .25s;
+        }
+
+        .manual-section:nth-child(6) {
+            animation-delay: .3s;
+        }
 
         .section-header {
             display: flex;
@@ -280,12 +306,29 @@ $pageTitle = 'QA System User Manual';
             color: #fff;
         }
 
-        .icon-purple { background: var(--primary); }
-        .icon-blue   { background: var(--accent-blue); }
-        .icon-orange { background: var(--accent-orange); }
-        .icon-green  { background: var(--accent-green); }
-        .icon-slate  { background: #4a5568; }
-        .icon-rose   { background: #e11d48; }
+        .icon-purple {
+            background: var(--primary);
+        }
+
+        .icon-blue {
+            background: var(--accent-blue);
+        }
+
+        .icon-orange {
+            background: var(--accent-orange);
+        }
+
+        .icon-green {
+            background: var(--accent-green);
+        }
+
+        .icon-slate {
+            background: #4a5568;
+        }
+
+        .icon-rose {
+            background: #e11d48;
+        }
 
         .section-title-wrap h2 {
             font-size: 1.25rem;
@@ -625,399 +668,400 @@ $pageTitle = 'QA System User Manual';
 
 <body>
 
-<div class="qa-wrapper">
-    <?php include '../partials/sidebar.php'; ?>
+    <div class="qa-wrapper">
+        <?php include '../partials/sidebar.php'; ?>
 
-    <div class="qa-content">
-        <?php include '../partials/header.php'; ?>
+        <div class="qa-content">
+            <?php include '../partials/header.php'; ?>
 
-        <div class="manual-layout">
+            <div class="manual-layout">
 
-            <!-- TABLE OF CONTENTS -->
-            <nav class="toc-panel">
-                <div class="toc-label">
-                    <i class="fa-solid fa-list"></i>
-                    Table of Contents
-                </div>
-                <div class="toc-title">QA System<br>User Manual</div>
-                <div class="toc-nav">
-                    <a href="#overview" class="active">
-                        <span class="toc-num">1</span>
-                        <i class="fa-solid fa-circle-info"></i>
-                        System Overview
-                    </a>
-                    <a href="#survey">
-                        <span class="toc-num">2</span>
-                        <i class="fa-solid fa-clipboard-question"></i>
-                        Survey Form Module
-                    </a>
-                    <a href="#kpi">
-                        <span class="toc-num">3</span>
-                        <i class="fa-solid fa-chart-line"></i>
-                        KPI Records
-                    </a>
-                    <a href="#action">
-                        <span class="toc-num">4</span>
-                        <i class="fa-solid fa-briefcase"></i>
-                        Action Plans
-                    </a>
-                    <a href="#integration">
-                        <span class="toc-num">5</span>
-                        <i class="fa-solid fa-plug"></i>
-                        System Integration
-                    </a>
-                    <a href="#faq">
-                        <span class="toc-num">6</span>
-                        <i class="fa-solid fa-circle-question"></i>
-                        FAQ
-                    </a>
-                </div>
-                <div class="toc-footer">
-                    QA System &copy; <?= date('Y') ?><br>
-                    For internal use only
-                </div>
-            </nav>
-
-            <!-- MAIN CONTENT -->
-            <div class="manual-body">
-                <div class="manual-content">
-
-                    <!-- COVER -->
-                    <div class="manual-cover">
-                        <div class="cover-badge">
-                            <i class="fa-solid fa-book"></i>
-                            Official Documentation
-                        </div>
-                        <h1 class="cover-title">QA System User Manual</h1>
-                        <p class="cover-subtitle">Survey &nbsp;•&nbsp; KPI &nbsp;•&nbsp; Action Plans &nbsp;•&nbsp; LMS &nbsp;•&nbsp; HRIS Integration</p>
-                        <div class="cover-meta">
-                            <div class="cover-meta-item">
-                                <strong>Document Type</strong>
-                                User Manual
-                            </div>
-                            <div class="cover-meta-item">
-                                <strong>Audience</strong>
-                                All System Users
-                            </div>
-                            <div class="cover-meta-item">
-                                <strong>Last Updated</strong>
-                                <?= date('F Y') ?>
-                            </div>
-                        </div>
+                <!-- TABLE OF CONTENTS -->
+                <nav class="toc-panel">
+                    <div class="toc-label">
+                        <i class="fa-solid fa-list"></i>
+                        Table of Contents
                     </div>
+                    <div class="toc-title">QA System<br>User Manual</div>
+                    <div class="toc-nav">
+                        <a href="#overview" class="active">
+                            <span class="toc-num">1</span>
+                            <i class="fa-solid fa-circle-info"></i>
+                            System Overview
+                        </a>
+                        <a href="#survey">
+                            <span class="toc-num">2</span>
+                            <i class="fa-solid fa-clipboard-question"></i>
+                            Survey Form Module
+                        </a>
+                        <a href="#kpi">
+                            <span class="toc-num">3</span>
+                            <i class="fa-solid fa-chart-line"></i>
+                            KPI Records
+                        </a>
+                        <a href="#action">
+                            <span class="toc-num">4</span>
+                            <i class="fa-solid fa-briefcase"></i>
+                            Action Plans
+                        </a>
+                        <a href="#integration">
+                            <span class="toc-num">5</span>
+                            <i class="fa-solid fa-plug"></i>
+                            System Integration
+                        </a>
+                        <a href="#faq">
+                            <span class="toc-num">6</span>
+                            <i class="fa-solid fa-circle-question"></i>
+                            FAQ
+                        </a>
+                    </div>
+                    <div class="toc-footer">
+                        QA System &copy; <?= date('Y') ?><br>
+                        For internal use only
+                    </div>
+                </nav>
 
-                    <!-- §1 SYSTEM OVERVIEW -->
-                    <div class="manual-section" id="overview">
-                        <div class="section-header">
-                            <span class="section-num">§1</span>
-                            <div class="section-icon icon-purple">
-                                <i class="fa-solid fa-circle-info"></i>
+                <!-- MAIN CONTENT -->
+                <div class="manual-body">
+                    <div class="manual-content">
+
+                        <!-- COVER -->
+                        <div class="manual-cover">
+                            <div class="cover-badge">
+                                <i class="fa-solid fa-book"></i>
+                                Official Documentation
                             </div>
-                            <div class="section-title-wrap">
-                                <h2>System Overview</h2>
-                                <p>Platform scope &amp; module summary</p>
-                            </div>
-                        </div>
-                        <div class="section-body">
-                            <p>
-                                The QA System is a centralized platform for managing quality assurance processes including surveys,
-                                KPIs, audits, reports, and integration with LMS, Faculty Evaluation, and HRIS systems.
-                            </p>
-                            <div class="info-cols">
-                                <div class="info-box">
-                                    <h5>Core Modules</h5>
-                                    <ul>
-                                        <li>Dashboard &amp; Reports</li>
-                                        <li>Standards, Policies, Audits</li>
-                                        <li>Survey Form Module (User Responses)</li>
-                                        <li>KPI Records Management</li>
-                                        <li>Action Plans (HRIS Integration)</li>
-                                        <li>System Integration Viewer</li>
-                                    </ul>
+                            <h1 class="cover-title">QA System User Manual</h1>
+                            <p class="cover-subtitle">Survey &nbsp;•&nbsp; KPI &nbsp;•&nbsp; Action Plans &nbsp;•&nbsp; LMS &nbsp;•&nbsp; HRIS Integration</p>
+                            <div class="cover-meta">
+                                <div class="cover-meta-item">
+                                    <strong>Document Type</strong>
+                                    User Manual
                                 </div>
-                                <div class="info-box">
-                                    <h5>External Systems</h5>
-                                    <ul>
-                                        <li>Learning Management System (LMS)</li>
-                                        <li>Faculty Evaluation System</li>
-                                        <li>Human Resources Information System (HRIS)</li>
-                                    </ul>
+                                <div class="cover-meta-item">
+                                    <strong>Audience</strong>
+                                    All System Users
+                                </div>
+                                <div class="cover-meta-item">
+                                    <strong>Last Updated</strong>
+                                    <?= date('F Y') ?>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="manual-divider">Section Break</div>
-
-                    <!-- §2 SURVEY -->
-                    <div class="manual-section" id="survey">
-                        <div class="section-header">
-                            <span class="section-num">§2</span>
-                            <div class="section-icon icon-blue">
-                                <i class="fa-solid fa-clipboard-question"></i>
-                            </div>
-                            <div class="section-title-wrap">
-                                <h2>Survey Form Module</h2>
-                                <p>Respondent types &amp; response workflow</p>
-                            </div>
-                        </div>
-                        <div class="section-body">
-                            <p>
-                                Users can answer surveys which are used for quality analysis and KPI computation.
-                            </p>
-                            <div class="info-cols">
-                                <div class="info-box">
-                                    <h5>Users</h5>
-                                    <ul>
-                                        <li>Students</li>
-                                        <li>Alumni</li>
-                                        <li>Employers</li>
-                                        <li>Faculty</li>
-                                        <li>Staff</li>
-                                    </ul>
+                        <!-- §1 SYSTEM OVERVIEW -->
+                        <div class="manual-section" id="overview">
+                            <div class="section-header">
+                                <span class="section-num">§1</span>
+                                <div class="section-icon icon-purple">
+                                    <i class="fa-solid fa-circle-info"></i>
                                 </div>
-                                <div class="info-box">
-                                    <h5>Process</h5>
-                                    <ul>
-                                        <li>Submit survey responses</li>
-                                        <li>Stored in QA database</li>
-                                        <li>Used for KPI generation</li>
-                                        <li>Included in reports</li>
-                                    </ul>
+                                <div class="section-title-wrap">
+                                    <h2>System Overview</h2>
+                                    <p>Platform scope &amp; module summary</p>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="manual-divider">Section Break</div>
-
-                    <!-- §3 KPI -->
-                    <div class="manual-section" id="kpi">
-                        <div class="section-header">
-                            <span class="section-num">§3</span>
-                            <div class="section-icon icon-orange">
-                                <i class="fa-solid fa-chart-line"></i>
-                            </div>
-                            <div class="section-title-wrap">
-                                <h2>KPI Records</h2>
-                                <p>Data sources &amp; analytics storage</p>
-                            </div>
-                        </div>
-                        <div class="section-body">
-                            <p>KPI Records are generated from LMS and Faculty Evaluation data.</p>
-                            <div class="info-box">
-                                <h5>Data Sources</h5>
-                                <table class="kpi-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Source</th>
-                                            <th>Data Type</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>LMS Reports</td>
-                                            <td>Grades, Completion, Performance</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Faculty Evaluation</td>
-                                            <td>Teaching Performance Scores</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Survey Results</td>
-                                            <td>Aggregated Stakeholder Feedback</td>
-                                        </tr>
-                                        <tr>
-                                            <td>QA Database</td>
-                                            <td>Stored KPI Analytics</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="manual-divider">Section Break</div>
-
-                    <!-- §4 ACTION PLANS -->
-                    <div class="manual-section" id="action">
-                        <div class="section-header">
-                            <span class="section-num">§4</span>
-                            <div class="section-icon icon-green">
-                                <i class="fa-solid fa-briefcase"></i>
-                            </div>
-                            <div class="section-title-wrap">
-                                <h2>Action Plans</h2>
-                                <p>QA findings &amp; HRIS improvement tracking</p>
-                            </div>
-                        </div>
-                        <div class="section-body">
-                            <p>
-                                Action Plans are created based on QA findings and KPI results.
-                                These are sent to HRIS for training and improvement tracking.
-                            </p>
-                            <div class="info-box">
-                                <h5>Workflow Steps</h5>
-                                <ul>
-                                    <li>Create improvement strategies</li>
-                                    <li>Send to HRIS system</li>
-                                    <li>Track implementation progress</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="manual-divider">Section Break</div>
-
-                    <!-- §5 INTEGRATION -->
-                    <div class="manual-section" id="integration">
-                        <div class="section-header">
-                            <span class="section-num">§5</span>
-                            <div class="section-icon icon-slate">
-                                <i class="fa-solid fa-plug"></i>
-                            </div>
-                            <div class="section-title-wrap">
-                                <h2>System Integration</h2>
-                                <p>Connected external platforms</p>
-                            </div>
-                        </div>
-                        <div class="section-body">
-                            <div class="integration-grid">
-                                <div class="int-card">
-                                    <div class="int-icon icon-purple">
-                                        <i class="fa-solid fa-graduation-cap"></i>
+                            <div class="section-body">
+                                <p>
+                                    The QA System is a centralized platform for managing quality assurance processes including surveys,
+                                    KPIs, audits, reports, and integration with LMS, Faculty Evaluation, and HRIS systems.
+                                </p>
+                                <div class="info-cols">
+                                    <div class="info-box">
+                                        <h5>Core Modules</h5>
+                                        <ul>
+                                            <li>Dashboard &amp; Reports</li>
+                                            <li>Standards, Policies, Audits</li>
+                                            <li>Survey Form Module (User Responses)</li>
+                                            <li>KPI Records Management</li>
+                                            <li>Action Plans (HRIS Integration)</li>
+                                            <li>System Integration Viewer</li>
+                                        </ul>
                                     </div>
-                                    <h6>LMS</h6>
-                                    <p>Student performance data</p>
-                                </div>
-                                <div class="int-card">
-                                    <div class="int-icon icon-blue">
-                                        <i class="fa-solid fa-chalkboard-user"></i>
+                                    <div class="info-box">
+                                        <h5>External Systems</h5>
+                                        <ul>
+                                            <li>Learning Management System (LMS)</li>
+                                            <li>Faculty Evaluation System</li>
+                                            <li>Human Resources Information System (HRIS)</li>
+                                        </ul>
                                     </div>
-                                    <h6>Faculty Eval</h6>
-                                    <p>Teaching performance scores</p>
                                 </div>
-                                <div class="int-card">
-                                    <div class="int-icon icon-green">
-                                        <i class="fa-solid fa-users-gear"></i>
+                            </div>
+                        </div>
+
+                        <div class="manual-divider">Section Break</div>
+
+                        <!-- §2 SURVEY -->
+                        <div class="manual-section" id="survey">
+                            <div class="section-header">
+                                <span class="section-num">§2</span>
+                                <div class="section-icon icon-blue">
+                                    <i class="fa-solid fa-clipboard-question"></i>
+                                </div>
+                                <div class="section-title-wrap">
+                                    <h2>Survey Form Module</h2>
+                                    <p>Respondent types &amp; response workflow</p>
+                                </div>
+                            </div>
+                            <div class="section-body">
+                                <p>
+                                    Users can answer surveys which are used for quality analysis and KPI computation.
+                                </p>
+                                <div class="info-cols">
+                                    <div class="info-box">
+                                        <h5>Users</h5>
+                                        <ul>
+                                            <li>Students</li>
+                                            <li>Alumni</li>
+                                            <li>Employers</li>
+                                            <li>Faculty</li>
+                                            <li>Staff</li>
+                                        </ul>
                                     </div>
-                                    <h6>HRIS</h6>
-                                    <p>Training &amp; development plans</p>
+                                    <div class="info-box">
+                                        <h5>Process</h5>
+                                        <ul>
+                                            <li>Submit survey responses</li>
+                                            <li>Stored in QA database</li>
+                                            <li>Used for KPI generation</li>
+                                            <li>Included in reports</li>
+                                        </ul>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="int-note">
-                                <i class="fa-solid fa-shield-halved"></i>
-                                Data is synchronized through secure API endpoints.
                             </div>
                         </div>
-                    </div>
 
-                    <div class="manual-divider">Section Break</div>
+                        <div class="manual-divider">Section Break</div>
 
-                    <!-- §6 FAQ -->
-                    <div class="manual-section" id="faq">
-                        <div class="section-header">
-                            <span class="section-num">§6</span>
-                            <div class="section-icon icon-rose">
-                                <i class="fa-solid fa-circle-question"></i>
+                        <!-- §3 KPI -->
+                        <div class="manual-section" id="kpi">
+                            <div class="section-header">
+                                <span class="section-num">§3</span>
+                                <div class="section-icon icon-orange">
+                                    <i class="fa-solid fa-chart-line"></i>
+                                </div>
+                                <div class="section-title-wrap">
+                                    <h2>KPI Records</h2>
+                                    <p>Data sources &amp; analytics storage</p>
+                                </div>
                             </div>
-                            <div class="section-title-wrap">
-                                <h2>FAQ</h2>
-                                <p>Frequently asked questions</p>
+                            <div class="section-body">
+                                <p>KPI Records are generated from LMS and Faculty Evaluation data.</p>
+                                <div class="info-box">
+                                    <h5>Data Sources</h5>
+                                    <table class="kpi-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Source</th>
+                                                <th>Data Type</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>LMS Reports</td>
+                                                <td>Grades, Completion, Performance</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Faculty Evaluation</td>
+                                                <td>Teaching Performance Scores</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Survey Results</td>
+                                                <td>Aggregated Stakeholder Feedback</td>
+                                            </tr>
+                                            <tr>
+                                                <td>QA Database</td>
+                                                <td>Stored KPI Analytics</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
-                        <div class="section-body">
-                            <div class="faq-item open" data-faq="1">
-                                <div class="faq-q">
-                                    <span class="faq-q-num">1</span>
-                                    <strong>Who can answer surveys?</strong>
-                                    <i class="fa-solid fa-chevron-down faq-arrow"></i>
+
+                        <div class="manual-divider">Section Break</div>
+
+                        <!-- §4 ACTION PLANS -->
+                        <div class="manual-section" id="action">
+                            <div class="section-header">
+                                <span class="section-num">§4</span>
+                                <div class="section-icon icon-green">
+                                    <i class="fa-solid fa-briefcase"></i>
                                 </div>
-                                <div class="faq-a">Students, Alumni, Employers, Faculty, and Staff can all participate in surveys relevant to their role.</div>
+                                <div class="section-title-wrap">
+                                    <h2>Action Plans</h2>
+                                    <p>QA findings &amp; HRIS improvement tracking</p>
+                                </div>
                             </div>
-                            <div class="faq-item" data-faq="2">
-                                <div class="faq-q">
-                                    <span class="faq-q-num">2</span>
-                                    <strong>Where does KPI data come from?</strong>
-                                    <i class="fa-solid fa-chevron-down faq-arrow"></i>
+                            <div class="section-body">
+                                <p>
+                                    Action Plans are created based on QA findings and KPI results.
+                                    These are sent to HRIS for training and improvement tracking.
+                                </p>
+                                <div class="info-box">
+                                    <h5>Workflow Steps</h5>
+                                    <ul>
+                                        <li>Create improvement strategies</li>
+                                        <li>Send to HRIS system</li>
+                                        <li>Track implementation progress</li>
+                                    </ul>
                                 </div>
-                                <div class="faq-a">KPI data is automatically pulled from the LMS and Faculty Evaluation System through API integration.</div>
-                            </div>
-                            <div class="faq-item" data-faq="3">
-                                <div class="faq-q">
-                                    <span class="faq-q-num">3</span>
-                                    <strong>What happens to Action Plans?</strong>
-                                    <i class="fa-solid fa-chevron-down faq-arrow"></i>
-                                </div>
-                                <div class="faq-a">Action Plans are sent to HRIS for execution and tracking of improvement initiatives.</div>
                             </div>
                         </div>
-                    </div>
 
-                </div><!-- /.manual-content -->
-            </div><!-- /.manual-body -->
-        </div><!-- /.manual-layout -->
-    </div><!-- /.qa-content -->
-</div><!-- /.qa-wrapper -->
+                        <div class="manual-divider">Section Break</div>
 
-<!-- Scripts -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../assets/js/app.js"></script>
+                        <!-- §5 INTEGRATION -->
+                        <div class="manual-section" id="integration">
+                            <div class="section-header">
+                                <span class="section-num">§5</span>
+                                <div class="section-icon icon-slate">
+                                    <i class="fa-solid fa-plug"></i>
+                                </div>
+                                <div class="section-title-wrap">
+                                    <h2>System Integration</h2>
+                                    <p>Connected external platforms</p>
+                                </div>
+                            </div>
+                            <div class="section-body">
+                                <div class="integration-grid">
+                                    <div class="int-card">
+                                        <div class="int-icon icon-purple">
+                                            <i class="fa-solid fa-graduation-cap"></i>
+                                        </div>
+                                        <h6>LMS</h6>
+                                        <p>Student performance data</p>
+                                    </div>
+                                    <div class="int-card">
+                                        <div class="int-icon icon-blue">
+                                            <i class="fa-solid fa-chalkboard-user"></i>
+                                        </div>
+                                        <h6>Faculty Eval</h6>
+                                        <p>Teaching performance scores</p>
+                                    </div>
+                                    <div class="int-card">
+                                        <div class="int-icon icon-green">
+                                            <i class="fa-solid fa-users-gear"></i>
+                                        </div>
+                                        <h6>HRIS</h6>
+                                        <p>Training &amp; development plans</p>
+                                    </div>
+                                </div>
+                                <div class="int-note">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                    Data is synchronized through secure API endpoints.
+                                </div>
+                            </div>
+                        </div>
 
-<script>
-    // FAQ accordion
-    document.querySelectorAll('.faq-q').forEach(q => {
-        q.addEventListener('click', () => {
-            const item = q.closest('.faq-item');
-            
-            // Close other open items
-            document.querySelectorAll('.faq-item.open').forEach(openItem => {
-                if (openItem !== item) {
-                    openItem.classList.remove('open');
+                        <div class="manual-divider">Section Break</div>
+
+                        <!-- §6 FAQ -->
+                        <div class="manual-section" id="faq">
+                            <div class="section-header">
+                                <span class="section-num">§6</span>
+                                <div class="section-icon icon-rose">
+                                    <i class="fa-solid fa-circle-question"></i>
+                                </div>
+                                <div class="section-title-wrap">
+                                    <h2>FAQ</h2>
+                                    <p>Frequently asked questions</p>
+                                </div>
+                            </div>
+                            <div class="section-body">
+                                <div class="faq-item open" data-faq="1">
+                                    <div class="faq-q">
+                                        <span class="faq-q-num">1</span>
+                                        <strong>Who can answer surveys?</strong>
+                                        <i class="fa-solid fa-chevron-down faq-arrow"></i>
+                                    </div>
+                                    <div class="faq-a">Students, Alumni, Employers, Faculty, and Staff can all participate in surveys relevant to their role.</div>
+                                </div>
+                                <div class="faq-item" data-faq="2">
+                                    <div class="faq-q">
+                                        <span class="faq-q-num">2</span>
+                                        <strong>Where does KPI data come from?</strong>
+                                        <i class="fa-solid fa-chevron-down faq-arrow"></i>
+                                    </div>
+                                    <div class="faq-a">KPI data is automatically pulled from the LMS and Faculty Evaluation System through API integration.</div>
+                                </div>
+                                <div class="faq-item" data-faq="3">
+                                    <div class="faq-q">
+                                        <span class="faq-q-num">3</span>
+                                        <strong>What happens to Action Plans?</strong>
+                                        <i class="fa-solid fa-chevron-down faq-arrow"></i>
+                                    </div>
+                                    <div class="faq-a">Action Plans are sent to HRIS for execution and tracking of improvement initiatives.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div><!-- /.manual-content -->
+                </div><!-- /.manual-body -->
+            </div><!-- /.manual-layout -->
+        </div><!-- /.qa-content -->
+    </div><!-- /.qa-wrapper -->
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../assets/js/app.js"></script>
+
+    <script>
+        // FAQ accordion
+        document.querySelectorAll('.faq-q').forEach(q => {
+            q.addEventListener('click', () => {
+                const item = q.closest('.faq-item');
+
+                // Close other open items
+                document.querySelectorAll('.faq-item.open').forEach(openItem => {
+                    if (openItem !== item) {
+                        openItem.classList.remove('open');
+                    }
+                });
+
+                item.classList.toggle('open');
+            });
+        });
+
+        // TOC active state on scroll
+        const sections = document.querySelectorAll('.manual-section[id]');
+        const navLinks = document.querySelectorAll('.toc-nav a');
+
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    navLinks.forEach(a => a.classList.remove('active'));
+                    const active = document.querySelector(`.toc-nav a[href="#${entry.target.id}"]`);
+                    if (active) active.classList.add('active');
                 }
             });
-            
-            item.classList.toggle('open');
+        }, {
+            rootMargin: '-10% 0px -70% 0px',
+            threshold: 0
         });
-    });
 
-    // TOC active state on scroll
-    const sections = document.querySelectorAll('.manual-section[id]');
-    const navLinks = document.querySelectorAll('.toc-nav a');
+        sections.forEach(s => observer.observe(s));
 
-    const observer = new IntersectionObserver(entries => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                navLinks.forEach(a => a.classList.remove('active'));
-                const active = document.querySelector(`.toc-nav a[href="#${entry.target.id}"]`);
-                if (active) active.classList.add('active');
-            }
+        // Smooth scroll for TOC links
+        navLinks.forEach(a => {
+            a.addEventListener('click', e => {
+                e.preventDefault();
+                const target = document.querySelector(a.getAttribute('href'));
+                if (target) {
+                    const headerOffset = 80;
+                    const elementPosition = target.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
         });
-    }, { 
-        rootMargin: '-10% 0px -70% 0px',
-        threshold: 0 
-    });
-
-    sections.forEach(s => observer.observe(s));
-
-    // Smooth scroll for TOC links
-    navLinks.forEach(a => {
-        a.addEventListener('click', e => {
-            e.preventDefault();
-            const target = document.querySelector(a.getAttribute('href'));
-            if (target) {
-                const headerOffset = 80;
-                const elementPosition = target.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                });
-            }
-        });
-    });
-</script>
+    </script>
 </body>
+
 </html>

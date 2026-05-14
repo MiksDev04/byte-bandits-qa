@@ -15,6 +15,8 @@ $pageTitle = 'Action Plans';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="x-api-key" content="<?= htmlspecialchars(getenv('APP_API_KEY'), ENT_QUOTES, 'UTF-8') ?>">
+
     <title><?= htmlspecialchars($pageTitle) ?> - QA System</title>
 
     <!-- Bootstrap 5 CSS -->
@@ -51,10 +53,26 @@ $pageTitle = 'Action Plans';
             font-size: 0.75rem;
             font-weight: 600;
         }
-        .status-Open { background: #ffe5e5; color: #dc3545; }
-        .status-In-Progress { background: #fff3e0; color: #ff9800; }
-        .status-Resolved { background: #e3f2fd; color: #2196f3; }
-        .status-Closed { background: #e8f5e9; color: #4caf50; }
+
+        .status-Open {
+            background: #ffe5e5;
+            color: #dc3545;
+        }
+
+        .status-In-Progress {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+
+        .status-Resolved {
+            background: #e3f2fd;
+            color: #2196f3;
+        }
+
+        .status-Closed {
+            background: #e8f5e9;
+            color: #4caf50;
+        }
     </style>
 </head>
 
@@ -121,7 +139,7 @@ $pageTitle = 'Action Plans';
                 <div class="modal-body">
                     <form id="actionPlanForm">
                         <input type="hidden" id="plan_id" name="plan_id">
-                        
+
                         <div class="mb-3">
                             <label class="form-label-qa">Audit ID <span class="text-danger">*</span></label>
                             <select class="form-control-qa" id="audit_id" name="audit_id" required>
@@ -135,25 +153,25 @@ $pageTitle = 'Action Plans';
                             </select>
                             <div class="form-error-msg" id="err-audit_id"></div>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label class="form-label-qa">Title <span class="text-danger">*</span></label>
                             <input type="text" class="form-control-qa" id="title" name="title" required maxlength="150">
                             <div class="form-error-msg" id="err-title"></div>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label class="form-label-qa">Description</label>
                             <textarea class="form-control-qa" id="description" name="description" rows="3"></textarea>
                             <div class="form-error-msg" id="err-description"></div>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label class="form-label-qa">Root Cause <span class="text-danger">*</span></label>
                             <textarea class="form-control-qa" id="root_cause" name="root_cause" rows="3" required></textarea>
                             <div class="form-error-msg" id="err-root_cause"></div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label-qa">Target Date</label>
@@ -265,7 +283,7 @@ $pageTitle = 'Action Plans';
             let html = '<div class="row">';
             plans.forEach(plan => {
                 const statusClass = `status-${plan.status.replace(/ /g, '-')}`;
-                
+
                 html += `
                     <div class="col-md-6 col-lg-4 mb-3">
                         <div class="card action-plan-card" style="border-radius: var(--radius);">
@@ -456,7 +474,6 @@ $pageTitle = 'Action Plans';
                 return m;
             });
         }
-
     </script>
 
 </body>

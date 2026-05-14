@@ -14,6 +14,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
+require_once '../config/api_auth.php'; // ← add
+requireApiKey();  
+
 define('LMS_API_URL', 'https://artisanslms.onrender.com/backend/api/export_student_performance.php');
 define('LMS_API_KEY', '0fvBAvRhGAkES6QVHXYojIVDQq5iPiRl');
 

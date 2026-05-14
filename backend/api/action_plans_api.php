@@ -13,10 +13,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
+session_start();
 
 require_once '../config/database.php';
+require_once '../config/api_auth.php'; // ← add
+requireApiKey();  
 
-session_start();
 
 // Check authentication
 if (empty($_SESSION['logged_in'])) {

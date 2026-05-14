@@ -14,6 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once '../config/database.php';
+require_once '../config/api_auth.php'; // ← add
+requireApiKey();  
 
 class SurveyResponseAPI {
     private $conn;
