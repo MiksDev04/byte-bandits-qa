@@ -448,9 +448,7 @@ $pageTitle = 'Standards & Policies';
         let deleteType = null;
         let deleteId = null;
 
-        // ── Cloudinary config (set these to your own values) ──────────────────────
-        const CLOUDINARY_CLOUD_NAME = 'dcumsgzer'; // e.g. 'myapp'
-        const CLOUDINARY_UPLOAD_PRESET = 'qa_system'; // unsigned preset name
+
         // ──────────────────────────────────────────────────────────────────────────
 
         $(document).ready(function() {
@@ -527,46 +525,41 @@ $pageTitle = 'Standards & Policies';
             return new Promise(function(resolve, reject) {
                 const file = $('#pdfFileInput')[0]._selectedFile;
                 if (!file) {
-                    resolve(null); // no new file; keep existing URL
+                    resolve(null);
                     return;
                 }
 
                 const formData = new FormData();
-                formData.append('file', file);
-                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-                formData.append('resource_type', 'raw');
+                formData.append('file', file); // just the file, nothing else
 
                 $('#pdfUploadProgress').show();
-                $('#pdfProgressBar').css('width', '0%');
-                $('#pdfUploadPct').text('0%');
 
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/raw/upload`);
-
-                xhr.upload.onprogress = function(e) {
-                    if (e.lengthComputable) {
-                        const pct = Math.round((e.loaded / e.total) * 100);
-                        $('#pdfProgressBar').css('width', pct + '%');
-                        $('#pdfUploadPct').text(pct + '%');
+                $.ajax({
+                    url: '../../backend/api/upload_pdf.php', // your own backend
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    xhr: function() {
+                        const xhr = new XMLHttpRequest();
+                        xhr.upload.onprogress = function(e) {
+                            if (e.lengthComputable) {
+                                const pct = Math.round((e.loaded / e.total) * 100);
+                                $('#pdfProgressBar').css('width', pct + '%');
+                                $('#pdfUploadPct').text(pct + '%');
+                            }
+                        };
+                        return xhr;
+                    },
+                    success: function(r) {
+                        $('#pdfUploadProgress').hide();
+                        r.success ? resolve(r.url) : reject(new Error(r.message));
+                    },
+                    error: function() {
+                        $('#pdfUploadProgress').hide();
+                        reject(new Error('Upload request failed'));
                     }
-                };
-
-                xhr.onload = function() {
-                    $('#pdfUploadProgress').hide();
-                    if (xhr.status === 200) {
-                        const resp = JSON.parse(xhr.responseText);
-                        resolve(resp.secure_url);
-                    } else {
-                        reject(new Error('Cloudinary upload failed: ' + xhr.status));
-                    }
-                };
-
-                xhr.onerror = function() {
-                    $('#pdfUploadProgress').hide();
-                    reject(new Error('Network error during upload'));
-                };
-
-                xhr.send(formData);
+                });
             });
         }
 
