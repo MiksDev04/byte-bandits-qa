@@ -1,9 +1,6 @@
 <?php
-$src = '/var/www/html/vendor/phpmailer/phpmailer/src';
 echo json_encode([
-    'src_exists'        => is_dir($src),
-    'src_contents'      => is_dir($src) ? scandir($src) : [],
-    'phpmailer_php'     => file_exists($src . '/PHPMailer.php'),
-    'smtp_php'          => file_exists($src . '/SMTP.php'),
-    'exception_php'     => file_exists($src . '/Exception.php'),
+    'sendgrid_key_set' => !empty(getenv('SENDGRID_API_KEY')),
+    'from_address_set' => !empty(getenv('MAIL_FROM_ADDRESS')),
+    'from_name'        => getenv('MAIL_FROM_NAME'),
 ]);
