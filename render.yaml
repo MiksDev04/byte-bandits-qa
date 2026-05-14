@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: my-php-app
-    runtime: docker
-    dockerfilePath: ./Dockerfile
-    envVars:
-      - key: PHP_ENV
-        value: production
