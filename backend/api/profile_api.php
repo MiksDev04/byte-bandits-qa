@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Profile API - View and Update Current User's Profile
  * backend/api/profile_api.php
@@ -79,9 +80,12 @@ try {
     jsonResponse(false, 'Server error occurred', [], 500);
 }
 
-function getProfile(): void {
+function getProfile(): void
+{
     $userId = $_SESSION['user_id'] ?? 0;
-    if ($userId <= 0) { jsonResponse(false, 'Invalid session'); }
+    if ($userId <= 0) {
+        jsonResponse(false, 'Invalid session');
+    }
 
     $conn = getDBConnection();
     $stmt = $conn->prepare("SELECT user_id, username, full_name, email, role, is_active, created_at FROM qa_users WHERE user_id = ?");
@@ -90,7 +94,9 @@ function getProfile(): void {
     $user = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    if (!$user) { jsonResponse(false, 'User not found', [], 404); }
+    if (!$user) {
+        jsonResponse(false, 'User not found', [], 404);
+    }
 
     $user['activity'] = getActivitySummary($userId);
 
@@ -103,7 +109,8 @@ function getProfile(): void {
     jsonResponse(true, 'Profile loaded', ['data' => $user]);
 }
 
-function getActivitySummary(int $userId): array {
+function getActivitySummary(int $userId): array
+{
     $conn = getDBConnection();
 
     $stmt = $conn->prepare("SELECT COUNT(*) as cnt FROM qa_surveys WHERE created_by = ?");
@@ -121,12 +128,17 @@ function getActivitySummary(int $userId): array {
     return ['surveys_created' => $surveysCreated, 'reports_generated' => $reportsGenerated];
 }
 
-function updateProfileInfo(array $data): void {
+function updateProfileInfo(array $data): void
+{
     $userId = $_SESSION['user_id'] ?? 0;
-    if ($userId <= 0) { jsonResponse(false, 'Invalid session'); }
+    if ($userId <= 0) {
+        jsonResponse(false, 'Invalid session');
+    }
 
     $errors = validateProfileInfo($data);
-    if (!empty($errors)) { jsonResponse(false, 'Validation failed', ['errors' => $errors]); }
+    if (!empty($errors)) {
+        jsonResponse(false, 'Validation failed', ['errors' => $errors]);
+    }
 
     $fullName = trim($data['full_name']);
     $email    = trim($data['email']);
@@ -155,9 +167,12 @@ function updateProfileInfo(array $data): void {
     }
 }
 
-function changePassword(array $data): void {
+function changePassword(array $data): void
+{
     $userId = $_SESSION['user_id'] ?? 0;
-    if ($userId <= 0) { jsonResponse(false, 'Invalid session'); }
+    if ($userId <= 0) {
+        jsonResponse(false, 'Invalid session');
+    }
 
     $verifiedAt = $_SESSION['pwd_change_verified_at'] ?? 0;
     if (empty($_SESSION['pwd_change_verified']) || (time() - $verifiedAt) > 900) {
@@ -167,7 +182,9 @@ function changePassword(array $data): void {
     }
 
     $errors = validatePasswordChange($data);
-    if (!empty($errors)) { jsonResponse(false, 'Validation failed', ['errors' => $errors]); }
+    if (!empty($errors)) {
+        jsonResponse(false, 'Validation failed', ['errors' => $errors]);
+    }
 
     $conn = getDBConnection();
     $stmt = $conn->prepare("SELECT password_hash FROM qa_users WHERE user_id = ?");
@@ -176,7 +193,9 @@ function changePassword(array $data): void {
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    if (!$row) { jsonResponse(false, 'User not found', [], 404); }
+    if (!$row) {
+        jsonResponse(false, 'User not found', [], 404);
+    }
 
     if (!password_verify($data['current_password'], $row['password_hash'])) {
         jsonResponse(false, 'Validation failed', ['errors' => ['current_password' => 'Current password is incorrect']]);
@@ -196,9 +215,14 @@ function changePassword(array $data): void {
     }
 }
 
-function sendVerificationCode(): void {
+function sendVerificationCode(): void
+{
+
+
     $userId = $_SESSION['user_id'] ?? 0;
-    if ($userId <= 0) { jsonResponse(false, 'Invalid session'); }
+    if ($userId <= 0) {
+        jsonResponse(false, 'Invalid session');
+    }
 
     $conn = getDBConnection();
     $stmt = $conn->prepare("SELECT email FROM qa_users WHERE user_id = ?");
@@ -225,7 +249,7 @@ function sendVerificationCode(): void {
 
     // rest stays the same...
 
- 
+
 
     $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     $_SESSION['pwd_verify_code']     = password_hash($code, PASSWORD_BCRYPT);
@@ -256,6 +280,10 @@ function sendVerificationCode(): void {
             "If you did not request a password change, you can safely ignore this email.\n\n" .
             "— QA System";
         $mail->send();
+        $mail->SMTPDebug  = 2;
+        $mail->Debugoutput = function ($str, $level) {
+            error_log('SMTP: ' . $str);
+        };
     } catch (MailerException $e) {
         error_log('sendVerificationCode mailer error: ' . $e->getMessage());
         jsonResponse(false, 'Failed to send verification email. Please try again later.');
@@ -265,37 +293,52 @@ function sendVerificationCode(): void {
     jsonResponse(true, 'Verification code sent.', ['data' => ['email' => $row['email']]]);
 }
 
-function verifyPasswordCode(array $data): void {
+function verifyPasswordCode(array $data): void
+{
     $userId = $_SESSION['user_id'] ?? 0;
-    if ($userId <= 0) { jsonResponse(false, 'Invalid session'); }
+    if ($userId <= 0) {
+        jsonResponse(false, 'Invalid session');
+    }
 
     $code = trim($data['code'] ?? '');
 
     if (empty($_SESSION['pwd_verify_code']) || empty($_SESSION['pwd_verify_expires'])) {
-        jsonResponse(false, 'No pending verification code. Please request a new one.',
-            ['errors' => ['code' => 'Request a new verification code.']]);
+        jsonResponse(
+            false,
+            'No pending verification code. Please request a new one.',
+            ['errors' => ['code' => 'Request a new verification code.']]
+        );
         return;
     }
 
     if (time() > $_SESSION['pwd_verify_expires']) {
         unset($_SESSION['pwd_verify_code'], $_SESSION['pwd_verify_expires'], $_SESSION['pwd_verify_attempts']);
-        jsonResponse(false, 'Verification code has expired. Please request a new one.',
-            ['errors' => ['code' => 'Code expired. Request a new one.']]);
+        jsonResponse(
+            false,
+            'Verification code has expired. Please request a new one.',
+            ['errors' => ['code' => 'Code expired. Request a new one.']]
+        );
         return;
     }
 
     $_SESSION['pwd_verify_attempts'] = ($_SESSION['pwd_verify_attempts'] ?? 0) + 1;
     if ($_SESSION['pwd_verify_attempts'] > 5) {
         unset($_SESSION['pwd_verify_code'], $_SESSION['pwd_verify_expires'], $_SESSION['pwd_verify_attempts']);
-        jsonResponse(false, 'Too many failed attempts. Please request a new verification code.',
-            ['errors' => ['code' => 'Too many attempts. Request a new code.']]);
+        jsonResponse(
+            false,
+            'Too many failed attempts. Please request a new verification code.',
+            ['errors' => ['code' => 'Too many attempts. Request a new code.']]
+        );
         return;
     }
 
     if (!password_verify($code, $_SESSION['pwd_verify_code'])) {
         $left = max(0, 5 - $_SESSION['pwd_verify_attempts']);
-        jsonResponse(false, 'Incorrect code.' . ($left > 0 ? " {$left} attempt(s) remaining." : ''),
-            ['errors' => ['code' => 'Incorrect verification code.']]);
+        jsonResponse(
+            false,
+            'Incorrect code.' . ($left > 0 ? " {$left} attempt(s) remaining." : ''),
+            ['errors' => ['code' => 'Incorrect verification code.']]
+        );
         return;
     }
 
@@ -306,7 +349,8 @@ function verifyPasswordCode(array $data): void {
     jsonResponse(true, 'Identity verified. You may now change your password.');
 }
 
-function validateProfileInfo(array $data): array {
+function validateProfileInfo(array $data): array
+{
     $errors = [];
     if (empty($data['full_name']) || trim($data['full_name']) === '') {
         $errors['full_name'] = 'Full name is required';
@@ -323,7 +367,8 @@ function validateProfileInfo(array $data): array {
     return $errors;
 }
 
-function validatePasswordChange(array $data): array {
+function validatePasswordChange(array $data): array
+{
     $errors = [];
     if (empty($data['current_password'])) {
         $errors['current_password'] = 'Current password is required';
@@ -338,8 +383,10 @@ function validatePasswordChange(array $data): array {
     } elseif (isset($data['new_password']) && $data['new_password'] !== $data['confirm_password']) {
         $errors['confirm_password'] = 'Passwords do not match';
     }
-    if (isset($data['new_password']) && isset($data['current_password'])
-        && $data['new_password'] === $data['current_password']) {
+    if (
+        isset($data['new_password']) && isset($data['current_password'])
+        && $data['new_password'] === $data['current_password']
+    ) {
         $errors['new_password'] = 'New password must be different from the current password';
     }
     return $errors;
