@@ -5,12 +5,10 @@
  */
 session_start();
 
-if (empty($_SESSION['logged_in'])) {
-    jsonResponse(false, 'Unauthorized access', [], 401);
-}
-// From backend/api/profile_api.php
-// __DIR__ = /var/www/html/backend/api
-// vendor  = /var/www/html/vendor
+// 1. Load database config FIRST (defines jsonResponse)
+require_once __DIR__ . '/../config/database.php';
+
+// 2. Now load autoloader
 $_autoloadPath = __DIR__ . '/../../vendor/autoload.php';
 if (!file_exists($_autoloadPath)) {
     error_log('Autoloader not found at: ' . $_autoloadPath);
@@ -21,6 +19,7 @@ require_once $_autoloadPath;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as MailerException;
 
+// 3. Headers
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -31,9 +30,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once '../config/database.php';
+// 4. Auth guard (jsonResponse is now available)
+if (empty($_SESSION['logged_in'])) {
+    jsonResponse(false, 'Unauthorized access', [], 401);
+}
 
-
+// rest of the file stays the same...
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? null;
