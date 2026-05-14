@@ -18,7 +18,7 @@ WORKDIR /var/www/html
 COPY . .
 
 # Install Composer dependencies (if composer.lock exists)
-RUN composer install --no-dev --optimize-autoloader --no-interaction \
+RUN composer install --no-cache --no-dev --optimize-autoloader --no-interaction \
     && composer dump-autoload --optimize --no-dev
 
 # Fix permissions
