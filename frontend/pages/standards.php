@@ -521,7 +521,7 @@ $pageTitle = 'Standards & Policies';
          * Upload the chosen PDF to Cloudinary via the unsigned upload API.
          * Returns the secure URL string, or null if no file was chosen.
          */
-        function uploadPdfToCloudinary() {
+        function uploadPdfToImageKit() {
             return new Promise(function(resolve, reject) {
                 const file = $('#pdfFileInput')[0]._selectedFile;
                 if (!file) {
@@ -530,12 +530,12 @@ $pageTitle = 'Standards & Policies';
                 }
 
                 const formData = new FormData();
-                formData.append('file', file); // just the file, nothing else
+                formData.append('file', file);
 
                 $('#pdfUploadProgress').show();
 
                 $.ajax({
-                    url: '../../backend/api/upload_pdf.php', // your own backend
+                    url: '../../backend/api/upload_pdf.php',
                     type: 'POST',
                     data: formData,
                     processData: false,
@@ -553,16 +553,21 @@ $pageTitle = 'Standards & Policies';
                     },
                     success: function(r) {
                         $('#pdfUploadProgress').hide();
-                        r.success ? resolve(r.url) : reject(new Error(r.message));
+                        if (r.success) {
+                            resolve(r.url);
+                        } else {
+                            console.error('ImageKit upload failed:', r);
+                            reject(new Error(r.message || 'Upload failed'));
+                        }
                     },
-                    error: function() {
+                    error: function(xhr) {
                         $('#pdfUploadProgress').hide();
-                        reject(new Error('Upload request failed'));
+                        console.error('XHR error:', xhr.responseText);
+                        reject(new Error('Upload request failed: ' + xhr.status));
                     }
                 });
             });
         }
-
         /* ── Tab button visibility ──────────────────────────────────────────── */
         function updateActionButtons() {
             const isStandards = $('#standards-tab').hasClass('active');
@@ -783,7 +788,7 @@ $pageTitle = 'Standards & Policies';
             const newFile = $('#pdfFileInput')[0]._selectedFile;
             if (newFile) {
                 try {
-                    documentUrl = await uploadPdfToCloudinary();
+                    documentUrl = await uploadPdfToImageKit();
                 } catch (err) {
                     btnReset(btn[0]);
                     toast.error('PDF upload failed: ' + err.message);
