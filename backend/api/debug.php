@@ -1,17 +1,9 @@
 <?php
-session_start();
-require_once dirname(__DIR__) . '/config/database.php';
-
-$autoload = dirname(__DIR__, 2) . '/vendor/autoload.php';
-
+$src = '/var/www/html/vendor/phpmailer/phpmailer/src';
 echo json_encode([
-    'autoload_path'  => $autoload,
-    'autoload_found' => file_exists($autoload),
-    'phpmailer_ok'   => file_exists($autoload) 
-                        ? (require_once $autoload) && class_exists('PHPMailer\PHPMailer\PHPMailer')
-                        : false,
-    'session_ok'     => session_status() === PHP_SESSION_ACTIVE,
-    'mail_user'      => getenv('MAIL_USERNAME') ?: 'NOT SET',
-    'mail_pass_set'  => !empty(getenv('MAIL_PASSWORD')),
-    'php_version'    => PHP_VERSION,
+    'src_exists'        => is_dir($src),
+    'src_contents'      => is_dir($src) ? scandir($src) : [],
+    'phpmailer_php'     => file_exists($src . '/PHPMailer.php'),
+    'smtp_php'          => file_exists($src . '/SMTP.php'),
+    'exception_php'     => file_exists($src . '/Exception.php'),
 ]);
