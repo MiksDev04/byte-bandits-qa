@@ -5,9 +5,11 @@
  */
 
 $_autoloadPath = __DIR__ . '/../../vendor/autoload.php';
-if (file_exists($_autoloadPath)) {
-    require_once $_autoloadPath;
+if (!file_exists($_autoloadPath)) {
+    error_log('Autoloader not found at: ' . $_autoloadPath);
+    jsonResponse(false, 'Server misconfiguration: autoloader missing.', [], 500);
 }
+require_once $_autoloadPath;
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as MailerException;
