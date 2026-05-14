@@ -213,9 +213,17 @@ function sendVerificationCode(): void {
     }
 
     if (!getenv('MAIL_USERNAME') || !getenv('MAIL_PASSWORD')) {
-        jsonResponse(false, 'Mail server is not configured. Please contact the administrator.');
+        jsonResponse(false, 'Mail server is not configured.');
         return;
     }
+
+    if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+        error_log('PHPMailer not found. Autoload path: ' . __DIR__ . '/../../vendor/autoload.php');
+        jsonResponse(false, 'Mail service unavailable. Contact administrator.');
+        return;
+    }
+
+    // rest stays the same...
 
  
 
