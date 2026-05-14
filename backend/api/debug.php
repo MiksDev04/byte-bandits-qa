@@ -2,10 +2,12 @@
 $autoload = __DIR__ . '/../../vendor/autoload.php';
 require_once $autoload;
 
+$psr4File = __DIR__ . '/../../vendor/composer/autoload_psr4.php';
+$psr4 = file_exists($psr4File) ? require $psr4File : [];
+
 echo json_encode([
-    'autoload_exists'     => file_exists($autoload),
-    'phpmailer_installed' => class_exists('PHPMailer\PHPMailer\PHPMailer'),
-    'phpmailer_dir_exists'=> is_dir(__DIR__ . '/../../vendor/phpmailer'),
-    'vendor_contents'     => scandir(__DIR__ . '/../../vendor'),
-    'php_version'         => PHP_VERSION,
+    'phpmailer_installed'    => class_exists('PHPMailer\PHPMailer\PHPMailer'),
+    'phpmailer_dir_contents' => scandir(__DIR__ . '/../../vendor/phpmailer'),
+    'psr4_map'               => $psr4,
+    'autoload_psr4_exists'   => file_exists($psr4File),
 ]);
