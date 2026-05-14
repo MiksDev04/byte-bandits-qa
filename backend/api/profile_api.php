@@ -3,7 +3,11 @@
  * Profile API - View and Update Current User's Profile
  * backend/api/profile_api.php
  */
+session_start();
 
+if (empty($_SESSION['logged_in'])) {
+    jsonResponse(false, 'Unauthorized access', [], 401);
+}
 // From backend/api/profile_api.php
 // __DIR__ = /var/www/html/backend/api
 // vendor  = /var/www/html/vendor
@@ -29,11 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once '../config/database.php';
 
-session_start();
 
-if (empty($_SESSION['logged_in'])) {
-    jsonResponse(false, 'Unauthorized access', [], 401);
-}
 
 $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? null;

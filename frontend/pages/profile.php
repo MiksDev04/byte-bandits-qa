@@ -1144,6 +1144,9 @@ $pageTitle = 'My Profile';
           })
           .fail(function() {
             toast.error('Network error. Please try again.');
+            // In profile.php, temporarily log the API path
+            console.log('API path:', API);
+            // Should be: https://byte-bandits-qa.onrender.com/backend/api/profile_api.php
           })
           .always(function() {
             btnReset(btn);
