@@ -3,6 +3,15 @@
  * Toast, AJAX helpers, form validation utilities, session guard
  */
 
+// Read the key PHP embedded in the page — never hardcode it here
+const API_KEY = document.querySelector('meta[name="x-api-key"]')?.content ?? '';
+
+// Attach to every $.ajax call automatically — no changes to individual functions
+$.ajaxSetup({
+  headers: {
+    'X-API-Key': API_KEY
+  }
+});
 /* ── Toast System ───────────────────────────────────────────── */
 const QAToast = (() => {
   let container;
@@ -20,17 +29,17 @@ const QAToast = (() => {
   }
 
   const ICONS = {
-    success : 'fa-circle-check',
-    error   : 'fa-circle-xmark',
-    warning : 'fa-triangle-exclamation',
-    info    : 'fa-circle-info',
+    success: 'fa-circle-check',
+    error: 'fa-circle-xmark',
+    warning: 'fa-triangle-exclamation',
+    info: 'fa-circle-info',
   };
 
   const TITLES = {
-    success : 'Success',
-    error   : 'Error',
-    warning : 'Warning',
-    info    : 'Information',
+    success: 'Success',
+    error: 'Error',
+    warning: 'Warning',
+    info: 'Information',
   };
 
   /**
@@ -41,8 +50,8 @@ const QAToast = (() => {
    * @param {number} [duration=4000] - ms before auto-hide (0 = sticky)
    */
   function show(type = 'info', message = '', title = '', duration = 4000) {
-    const c   = ensureContainer();
-    const el  = document.createElement('div');
+    const c = ensureContainer();
+    const el = document.createElement('div');
     el.className = `qa-toast ${type}`;
 
     el.innerHTML = `
@@ -77,10 +86,10 @@ const QAToast = (() => {
 
 /* Shorthand helpers */
 const toast = {
-  success : (msg, title, dur) => QAToast.show('success', msg, title, dur),
-  error   : (msg, title, dur) => QAToast.show('error',   msg, title, dur),
-  warning : (msg, title, dur) => QAToast.show('warning', msg, title, dur),
-  info    : (msg, title, dur) => QAToast.show('info',    msg, title, dur),
+  success: (msg, title, dur) => QAToast.show('success', msg, title, dur),
+  error: (msg, title, dur) => QAToast.show('error', msg, title, dur),
+  warning: (msg, title, dur) => QAToast.show('warning', msg, title, dur),
+  info: (msg, title, dur) => QAToast.show('info', msg, title, dur),
 };
 
 /* ── AJAX Helper ────────────────────────────────────────────── */
@@ -142,7 +151,7 @@ function validateForm(formSel, rules = {}) {
     if (!field) continue;
 
     const value = field.value.trim();
-    let error   = '';
+    let error = '';
 
     if (rule.required && value === '') {
       error = rule.required === true ? `${titleCase(name)} is required.` : rule.required;
@@ -165,7 +174,7 @@ function validateForm(formSel, rules = {}) {
       valid = false;
       field.classList.add('is-invalid');
       const errEl = field.parentElement?.querySelector('.form-error-msg')
-                  || document.getElementById(`err-${name}`);
+        || document.getElementById(`err-${name}`);
       if (errEl) {
         errEl.textContent = error;
         errEl.classList.add('show');
@@ -196,7 +205,7 @@ function applyServerErrors(formSel, errors = {}) {
     if (field) {
       field.classList.add('is-invalid');
       const errEl = field.parentElement?.querySelector('.form-error-msg')
-                  || document.getElementById(`err-${name}`);
+        || document.getElementById(`err-${name}`);
       if (errEl) {
         errEl.textContent = msg;
         errEl.classList.add('show');
@@ -237,9 +246,9 @@ function qaConfirm(message = 'Are you sure?') {
 
 /* ── Sidebar toggle (mobile) ────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
-  const sidebar   = document.querySelector('.qa-sidebar');
+  const sidebar = document.querySelector('.qa-sidebar');
   const toggleBtn = document.getElementById('sidebar-toggle');
-  const overlay   = document.getElementById('sidebar-overlay');
+  const overlay = document.getElementById('sidebar-overlay');
 
   if (toggleBtn && sidebar) {
     toggleBtn.addEventListener('click', () => {

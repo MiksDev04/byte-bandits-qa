@@ -5,6 +5,8 @@
  */
 
 require_once '../config/database.php';
+require_once '../config/api_auth.php'; // ← add
+requireApiKey();                                   // ← add
 
 // Enable error reporting for debugging (remove in production)
 error_reporting(E_ALL);
