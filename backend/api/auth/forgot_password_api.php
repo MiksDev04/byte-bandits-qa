@@ -219,11 +219,19 @@ function verifyCaptcha(string $token): bool
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT        => 5,
     ]);
-    $response = curl_exec($ch);
+    $response  = curl_exec($ch);
+    $curlError = curl_error($ch);
     curl_close($ch);
 
+    if ($curlError) {
+        error_log('[ForgotPassword] hCaptcha curl error: ' . $curlError);
+        return false;
+    }
+
     if (!$response) return false;
+
     $data = json_decode($response, true);
+    error_log('[ForgotPassword] hCaptcha response: ' . json_encode($data)); // temp debug
     return !empty($data['success']);
 }
 
