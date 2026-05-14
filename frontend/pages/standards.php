@@ -535,8 +535,6 @@ $pageTitle = 'Standards & Policies';
                 formData.append('file', file);
                 formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
                 formData.append('resource_type', 'raw');
-                formData.append('type', 'upload'); // ← add this
-                formData.append('access_mode', 'public'); // ← add this
 
                 $('#pdfUploadProgress').show();
                 $('#pdfProgressBar').css('width', '0%');
