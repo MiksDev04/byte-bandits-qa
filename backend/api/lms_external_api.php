@@ -17,8 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once '../config/api_auth.php'; // ← add
 requireApiKey();  
 
-define('LMS_API_URL', 'https://artisanslms.onrender.com/backend/api/export_student_performance.php');
-define('LMS_API_KEY', '0fvBAvRhGAkES6QVHXYojIVDQq5iPiRl');
+$LMS_API_URL = getenv('LMS_API_URL');
+$LMS_API_KEY = getenv('LMS_API_KEY');
+
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
