@@ -9,15 +9,6 @@
  *   reset_password — verify reset token from session, update password hash
  */
 
-// ── Autoloader (PHPMailer) ────────────────────────────────────
-$_autoloadPath = __DIR__ . '/../../../vendor/autoload.php';
-if (file_exists($_autoloadPath)) {
-    require_once $_autoloadPath;
-}
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception as MailerException;
-
 session_start();
 
 require_once '../../config/database.php';
@@ -48,12 +39,10 @@ function handleSendCode(array $input): void
     $captcha  = $input['captcha'] ?? '';
     $isResend = !empty($input['resend']);
 
-    // Validate email
     if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         jsonResponse(false, 'A valid email address is required.', [], 422);
     }
 
-    // Verify hCaptcha (skip on resend — user already passed it)
     if (!$isResend) {
         if (empty($captcha)) {
             jsonResponse(false, 'Please complete the human verification.', [], 422);
@@ -76,29 +65,30 @@ function handleSendCode(array $input): void
         jsonResponse(false, 'Too many requests. Please wait 15 minutes before trying again.', [], 429);
     }
 
-    // Look up user — same generic response whether found or not (prevent email enumeration)
+    // Check SendGrid is configured before doing anything
+    if (!getenv('SENDGRID_API_KEY')) {
+        jsonResponse(false, 'Mail server is not configured. Please contact the administrator.');
+    }
+
     $user = dbFetchOne(
         "SELECT user_id, full_name, email FROM qa_users WHERE email = ? AND is_active = 1 LIMIT 1",
         's',
         [$email]
     );
 
-    // Generate OTP regardless
     $otp     = sprintf('%06d', random_int(0, 999999));
-    $expires = time() + 600; // 10 minutes (same as profile_api.php)
+    $expires = time() + 600;
 
     if ($user) {
-        // Store hashed OTP in session — same pattern as profile_api.php
         $_SESSION['fp_otp_hash']     = password_hash($otp, PASSWORD_BCRYPT);
         $_SESSION['fp_otp_expires']  = $expires;
         $_SESSION['fp_otp_attempts'] = 0;
         $_SESSION['fp_email']        = $email;
-        unset($_SESSION['fp_reset_token']); // clear any stale token
+        unset($_SESSION['fp_reset_token']);
 
         sendOtpEmail($email, $user['full_name'], $otp);
     }
 
-    // Update rate limit counters
     $_SESSION['fp_rate_count']  = $rateCount + 1;
     $_SESSION['fp_rate_window'] = $rateWindow;
 
@@ -117,24 +107,20 @@ function handleVerifyCode(array $input): void
         jsonResponse(false, 'Please enter the 6-digit verification code.', [], 422);
     }
 
-    // Check session has a pending OTP
     if (empty($_SESSION['fp_otp_hash']) || empty($_SESSION['fp_otp_expires'])) {
         jsonResponse(false, 'No pending code. Please request a new one.', [], 401);
     }
 
-    // Email must match what the code was sent to
     if (($_SESSION['fp_email'] ?? '') !== $email) {
         jsonResponse(false, 'Invalid request. Please start over.', [], 401);
     }
 
-    // Expired?
     if (time() > (int)$_SESSION['fp_otp_expires']) {
         unset($_SESSION['fp_otp_hash'], $_SESSION['fp_otp_expires'],
               $_SESSION['fp_otp_attempts'], $_SESSION['fp_email']);
         jsonResponse(false, 'This code has expired. Please request a new one.', [], 401);
     }
 
-    // Brute-force guard: max 5 attempts (same as profile_api.php)
     $_SESSION['fp_otp_attempts'] = ($_SESSION['fp_otp_attempts'] ?? 0) + 1;
     if ($_SESSION['fp_otp_attempts'] > 5) {
         unset($_SESSION['fp_otp_hash'], $_SESSION['fp_otp_expires'],
@@ -142,19 +128,17 @@ function handleVerifyCode(array $input): void
         jsonResponse(false, 'Too many failed attempts. Please request a new code.', [], 429);
     }
 
-    // Verify OTP
     if (!password_verify($code, $_SESSION['fp_otp_hash'])) {
         $remaining = max(0, 5 - (int)$_SESSION['fp_otp_attempts']);
         jsonResponse(false, 'Incorrect code. ' . $remaining . ' attempt(s) remaining.', [], 401);
     }
 
-    // Correct — clear OTP, issue short-lived reset token in session
     unset($_SESSION['fp_otp_hash'], $_SESSION['fp_otp_expires'], $_SESSION['fp_otp_attempts']);
 
     $resetToken = bin2hex(random_bytes(32));
     $_SESSION['fp_reset_token']        = $resetToken;
     $_SESSION['fp_reset_token_email']  = $email;
-    $_SESSION['fp_reset_token_expiry'] = time() + 600; // 10 minutes to complete
+    $_SESSION['fp_reset_token_expiry'] = time() + 600;
 
     jsonResponse(true, 'Code verified successfully.', ['token' => $resetToken]);
 }
@@ -175,7 +159,6 @@ function handleResetPassword(array $input): void
         jsonResponse(false, 'Password must be at least 8 characters.', [], 422);
     }
 
-    // Validate session reset token
     if (empty($_SESSION['fp_reset_token']) ||
         !hash_equals($_SESSION['fp_reset_token'], $token)) {
         jsonResponse(false, 'Invalid or expired reset session. Please start over.', [], 401);
@@ -189,7 +172,6 @@ function handleResetPassword(array $input): void
 
     $email = $_SESSION['fp_reset_token_email'] ?? '';
 
-    // Find the user
     $user = dbFetchOne(
         "SELECT user_id FROM qa_users WHERE email = ? AND is_active = 1 LIMIT 1",
         's',
@@ -200,7 +182,6 @@ function handleResetPassword(array $input): void
         jsonResponse(false, 'Account not found or deactivated.', [], 404);
     }
 
-    // Update password — same as profile_api.php
     $newHash = password_hash($password, PASSWORD_BCRYPT);
     dbExecute(
         "UPDATE qa_users SET password_hash = ? WHERE user_id = ?",
@@ -208,7 +189,6 @@ function handleResetPassword(array $input): void
         [$newHash, $user['user_id']]
     );
 
-    // Clean up all forgot-password session keys
     unset(
         $_SESSION['fp_reset_token'],
         $_SESSION['fp_reset_token_email'],
@@ -226,23 +206,11 @@ function handleResetPassword(array $input): void
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Verify hCaptcha token against hCaptcha's siteverify API.
- * Reads HCAPTCHA_SECRET from .env — falls back to hCaptcha's always-pass test secret.
+ * Verify hCaptcha token. Reads HCAPTCHA_SECRET via getenv().
  */
 function verifyCaptcha(string $token): bool
 {
-    $envPath = __DIR__ . '/../../.env';
-    $secret  = '0x0000000000000000000000000000000000000000'; // test secret (always passes)
-
-    if (file_exists($envPath)) {
-        foreach (file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
-            $line = trim($line);
-            if (str_starts_with($line, 'HCAPTCHA_SECRET=')) {
-                $secret = trim(substr($line, strlen('HCAPTCHA_SECRET=')), " \t\"'");
-                break;
-            }
-        }
-    }
+    $secret = getenv('HCAPTCHA_SECRET') ?: '0x0000000000000000000000000000000000000000';
 
     $ch = curl_init('https://hcaptcha.com/siteverify');
     curl_setopt_array($ch, [
@@ -260,58 +228,23 @@ function verifyCaptcha(string $token): bool
 }
 
 /**
- * Send OTP email via PHPMailer.
- * Reads SMTP credentials from .env — exactly the same way profile_api.php does.
+ * Send OTP email via SendGrid — same approach as profile_api.php.
  */
 function sendOtpEmail(string $toEmail, string $toName, string $otp): void
 {
-    // Parse .env (same logic as profile_api.php's parseEnvFile)
-    $envPath = __DIR__ . '/../../.env';
-    $env     = [];
+    $apiKey      = getenv('SENDGRID_API_KEY');
+    $fromAddress = getenv('MAIL_FROM_ADDRESS') ?: getenv('SENDGRID_FROM_EMAIL') ?: '';
+    $fromName    = getenv('MAIL_FROM_NAME') ?: 'QA System';
 
-    if (file_exists($envPath)) {
-        foreach (file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
-            $line = trim($line);
-            if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) continue;
-            [$key, $val] = explode('=', $line, 2);
-            $env[trim($key)] = trim($val, " \t\"'");
-        }
-    }
-
-    $mailUser = $env['MAIL_USERNAME']     ?? '';
-    $mailPass = $env['MAIL_PASSWORD']     ?? '';
-    $fromName = $env['MAIL_FROM_NAME']    ?? 'QA System';
-    $fromAddr = $env['MAIL_FROM_ADDRESS'] ?? $mailUser;
-
-    if (empty($mailUser) || empty($mailPass)) {
-        error_log('[ForgotPassword] Mailer not configured — set MAIL_USERNAME/MAIL_PASSWORD in .env');
+    if (!$apiKey || !$fromAddress) {
+        error_log('[ForgotPassword] SendGrid not configured — set SENDGRID_API_KEY and MAIL_FROM_ADDRESS.');
         return;
     }
 
-    if (!class_exists(PHPMailer::class)) {
-        error_log('[ForgotPassword] PHPMailer not found.');
-        return;
-    }
+    $year    = date('Y');
+    $subject = 'Your Password Reset Code — QA Management System';
 
-    try {
-        $mail             = new PHPMailer(true);
-        $mail->isSMTP();
-        $mail->Host       = $env['MAIL_HOST'] ?? 'smtp.gmail.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = $mailUser;
-        $mail->Password   = $mailPass;
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = (int)($env['MAIL_PORT'] ?? 587);
-        $mail->Timeout    = 10;
-        $mail->SMTPDebug  = 0;
-
-        $mail->setFrom($fromAddr, $fromName);
-        $mail->addAddress($toEmail, $toName);
-        $mail->Subject = 'Your Password Reset Code — QA Management System';
-        $mail->isHTML(true);
-
-        $year = date('Y');
-        $mail->Body = <<<HTML
+    $htmlBody = <<<HTML
 <!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -319,7 +252,6 @@ function sendOtpEmail(string $toEmail, string $toName, string $otp): void
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ff;padding:40px 0;">
     <tr><td align="center">
       <table width="480" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(108,92,231,.10);">
-
         <tr>
           <td style="background:linear-gradient(135deg,#6c5ce7,#a78bfa);padding:32px 40px;text-align:center;">
             <div style="font-size:2rem;margin-bottom:8px;">🔑</div>
@@ -327,7 +259,6 @@ function sendOtpEmail(string $toEmail, string $toName, string $otp): void
             <p style="color:rgba(255,255,255,.85);margin:6px 0 0;font-size:.83rem;">QA Management System</p>
           </td>
         </tr>
-
         <tr>
           <td style="padding:32px 40px;">
             <p style="color:#374151;margin:0 0 14px;font-size:.95rem;">Hi <strong>{$toName}</strong>,</p>
@@ -343,13 +274,11 @@ function sendOtpEmail(string $toEmail, string $toName, string $otp): void
             <p style="color:#6b7280;font-size:.82rem;margin:0;"><strong>Never share this code</strong> with anyone.</p>
           </td>
         </tr>
-
         <tr>
           <td style="background:#f9fafb;border-top:1px solid #f3f4f6;padding:14px 40px;text-align:center;">
             <p style="color:#9ca3af;font-size:.73rem;margin:0;">&copy; {$year} Quality Assurance Management System &bull; All rights reserved</p>
           </td>
         </tr>
-
       </table>
     </td></tr>
   </table>
@@ -357,11 +286,40 @@ function sendOtpEmail(string $toEmail, string $toName, string $otp): void
 </html>
 HTML;
 
-        $mail->AltBody = "Hi {$toName},\n\nYour password reset code is: {$otp}\n\nThis code expires in 10 minutes.\n\nIf you did not request this, you can safely ignore this email.\n\n— QA System";
+    $plainBody = "Hi {$toName},\n\nYour password reset code is: {$otp}\n\nThis code expires in 10 minutes.\n\nIf you did not request this, you can safely ignore this email.\n\n— QA System";
 
-        $mail->send();
+    $payload = json_encode([
+        'personalizations' => [
+            ['to' => [['email' => $toEmail, 'name' => $toName]]],
+        ],
+        'from'    => ['email' => $fromAddress, 'name' => $fromName],
+        'subject' => $subject,
+        'content' => [
+            ['type' => 'text/plain', 'value' => $plainBody],
+            ['type' => 'text/html',  'value' => $htmlBody],
+        ],
+    ]);
 
-    } catch (MailerException $e) {
-        error_log('[ForgotPassword] Mailer error: ' . $e->getMessage());
+    $ch = curl_init('https://api.sendgrid.com/v3/mail/send');
+    curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $payload,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 15,
+        CURLOPT_HTTPHEADER     => [
+            'Authorization: Bearer ' . $apiKey,
+            'Content-Type: application/json',
+        ],
+    ]);
+
+    $response   = curl_exec($ch);
+    $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError  = curl_error($ch);
+    curl_close($ch);
+
+    if ($curlError) {
+        error_log('[ForgotPassword] SendGrid curl error: ' . $curlError);
+    } elseif ($statusCode < 200 || $statusCode >= 300) {
+        error_log('[ForgotPassword] SendGrid HTTP ' . $statusCode . ': ' . $response);
     }
 }
