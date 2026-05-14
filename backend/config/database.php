@@ -12,6 +12,7 @@ define('DB_USER', getenv('DB_USER') ?: 'root');
 define('DB_PASS', getenv('DB_PASS') ?: '');
 define('DB_NAME', getenv('DB_NAME') ?: 'qa_system');
 define('DB_PORT', getenv('DB_PORT') ?: 3306);
+define('DB_SSL_CA', getenv('DB_SSL_CA') ?: '/etc/ssl/aiven/ca.pem'); // ← add this
 define('DB_CHARSET', 'utf8mb4');
 
 /**
@@ -22,19 +23,35 @@ function getDBConnection(): mysqli {
     static $conn = null;
 
     if ($conn === null) {
-        if (!function_exists('mysqli_report')) {
-            error_log('[DB] mysqli extension is not loaded.');
-            jsonResponse(false, 'Server misconfiguration: mysqli not available.', [], 500);
-        }
-
         mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
         try {
-            $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT);
+            $conn = mysqli_init();
+
+            // Aiven requires SSL — point to the CA cert file
+            $conn->ssl_set(
+                null,                          // client key (not needed)
+                null,                          // client cert (not needed)
+                getenv('DB_SSL_CA') ?: '/etc/ssl/certs/ca-certificates.crt', // CA cert
+                null,
+                null
+            );
+
+            $conn->real_connect(
+                DB_HOST,
+                DB_USER,
+                DB_PASS,
+                DB_NAME,
+                (int) DB_PORT,
+                null,
+                MYSQLI_CLIENT_SSL
+            );
+
             $conn->set_charset(DB_CHARSET);
+
         } catch (mysqli_sql_exception $e) {
             error_log('[DB Connection] ' . $e->getMessage());
-            jsonResponse(false, 'Database connection failed. Please contact the administrator.', [], 500);
+            jsonResponse(false, 'Database connection failed.', [], 500);
         }
     }
 
