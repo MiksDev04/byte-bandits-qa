@@ -851,7 +851,9 @@ $pageTitle = 'My Profile';
         $.ajax({
             url: API,
             type: 'GET',
-            data: { action: 'get' },
+            data: {
+              action: 'get'
+            },
             dataType: 'json'
           })
           .done(function(res) {
@@ -915,7 +917,9 @@ $pageTitle = 'My Profile';
           `).show();
           $hint.find('#changeGmailLink').on('click', function(e) {
             e.preventDefault();
-            document.getElementById('gmailCard').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('gmailCard').scrollIntoView({
+              behavior: 'smooth'
+            });
             $('#btnReconnectGmail').trigger('click');
           });
         } else {
@@ -925,7 +929,9 @@ $pageTitle = 'My Profile';
           `).show();
           $hint.find('#connectGmailLink').on('click', function(e) {
             e.preventDefault();
-            document.getElementById('gmailCard').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('gmailCard').scrollIntoView({
+              behavior: 'smooth'
+            });
           });
         }
 
@@ -1059,13 +1065,20 @@ $pageTitle = 'My Profile';
               `).show();
               $('#emailFieldHint #changeGmailLink').on('click', function(e) {
                 e.preventDefault();
-                document.getElementById('gmailCard').scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('gmailCard').scrollIntoView({
+                  behavior: 'smooth'
+                });
                 $('#btnReconnectGmail').trigger('click');
               });
             } else {
               const errs = res.data?.errors || {};
               if (errs.gmail_username) {
                 setFieldError('gmailUsername', 'errGmailUsername', errs.gmail_username);
+              } else if (res.data?.warn) {
+                // Domain doesn't exist — show as a warning toast, not an inline error
+                toast.warning ?
+                  toast.warning(res.message) :
+                  toast.error('⚠️ ' + res.message); // fallback if toast.warning isn't defined in app.js
               } else {
                 toast.error(res.message || 'Failed to save email. Please try again.');
               }
@@ -1127,15 +1140,37 @@ $pageTitle = 'My Profile';
         if (/[0-9]/.test(val)) score++;
         if (/[^A-Za-z0-9]/.test(val)) score++;
 
-        const map = [
-          { w: '0%',   bg: 'transparent', lbl: '' },
-          { w: '25%',  bg: '#c0392b',     lbl: 'Weak' },
-          { w: '50%',  bg: '#e67e22',     lbl: 'Fair' },
-          { w: '75%',  bg: '#f1c40f',     lbl: 'Good' },
-          { w: '100%', bg: '#27ae60',     lbl: 'Strong' },
+        const map = [{
+            w: '0%',
+            bg: 'transparent',
+            lbl: ''
+          },
+          {
+            w: '25%',
+            bg: '#c0392b',
+            lbl: 'Weak'
+          },
+          {
+            w: '50%',
+            bg: '#e67e22',
+            lbl: 'Fair'
+          },
+          {
+            w: '75%',
+            bg: '#f1c40f',
+            lbl: 'Good'
+          },
+          {
+            w: '100%',
+            bg: '#27ae60',
+            lbl: 'Strong'
+          },
         ];
         const m = map[score];
-        $('#strengthFill').css({ width: m.w, background: m.bg });
+        $('#strengthFill').css({
+          width: m.w,
+          background: m.bg
+        });
         $('#strengthText').text(m.lbl);
       });
 
@@ -1183,7 +1218,9 @@ $pageTitle = 'My Profile';
             type: 'POST',
             contentType: 'application/json',
             dataType: 'json',
-            data: JSON.stringify({ action: 'send_verification_code' })
+            data: JSON.stringify({
+              action: 'send_verification_code'
+            })
           })
           .done(function(res) {
             if (res.success) {
@@ -1237,7 +1274,9 @@ $pageTitle = 'My Profile';
         const pasted = (e.originalEvent.clipboardData || window.clipboardData)
           .getData('text').replace(/\D/g, '').slice(0, 6);
         const boxes = document.querySelectorAll('.otp-digit');
-        pasted.split('').forEach((ch, i) => { if (boxes[i]) boxes[i].value = ch; });
+        pasted.split('').forEach((ch, i) => {
+          if (boxes[i]) boxes[i].value = ch;
+        });
         if (pasted.length >= 6 && boxes[5]) boxes[5].focus();
       });
 
@@ -1267,7 +1306,9 @@ $pageTitle = 'My Profile';
             type: 'POST',
             contentType: 'application/json',
             dataType: 'json',
-            data: JSON.stringify({ action: 'send_verification_code' })
+            data: JSON.stringify({
+              action: 'send_verification_code'
+            })
           })
           .done(function(res) {
             if (res.success) {
@@ -1279,8 +1320,12 @@ $pageTitle = 'My Profile';
               toast.error(res.message || 'Could not resend code.');
             }
           })
-          .fail(function() { toast.error('Network error.'); })
-          .always(function() { btnReset(btn); });
+          .fail(function() {
+            toast.error('Network error.');
+          })
+          .always(function() {
+            btnReset(btn);
+          });
       });
 
       /* ── Cancel enter-code modal ────────────────────────────── */
@@ -1311,14 +1356,19 @@ $pageTitle = 'My Profile';
             type: 'POST',
             contentType: 'application/json',
             dataType: 'json',
-            data: JSON.stringify({ action: 'verify_code', code: code })
+            data: JSON.stringify({
+              action: 'verify_code',
+              code: code
+            })
           })
           .done(function(res) {
             if (res.success) {
               clearInterval(_resendTimer);
               bootstrap.Modal.getInstance(document.getElementById('modalEnterCode')).hide();
               $('#pwdForm')[0].reset();
-              $('#strengthFill').css({ width: '0%' });
+              $('#strengthFill').css({
+                width: '0%'
+              });
               $('#strengthText').text('');
               clearErrors([
                 ['currentPwd', 'errCurrentPwd'],
@@ -1333,8 +1383,12 @@ $pageTitle = 'My Profile';
               setTimeout(() => $('#otpBoxRow').removeClass('otp-shake'), 500);
             }
           })
-          .fail(function() { toast.error('Network error.'); })
-          .always(function() { btnReset(btn); });
+          .fail(function() {
+            toast.error('Network error.');
+          })
+          .always(function() {
+            btnReset(btn);
+          });
       });
 
       /* ══════════════════════════════════════════════════════════
@@ -1372,7 +1426,9 @@ $pageTitle = 'My Profile';
               bootstrap.Modal.getInstance(document.getElementById('modalChangePassword')).hide();
               toast.success('Password changed successfully.', 'Updated');
               $('#pwdForm')[0].reset();
-              $('#strengthFill').css({ width: '0%' });
+              $('#strengthFill').css({
+                width: '0%'
+              });
               $('#strengthText').text('');
             } else {
               const errs = res.data?.errors || {};
@@ -1382,8 +1438,12 @@ $pageTitle = 'My Profile';
               if (!Object.keys(errs).length) toast.error(res.message || 'Password change failed.');
             }
           })
-          .fail(function() { toast.error('Network error. Please try again.'); })
-          .always(function() { btnReset(btn); });
+          .fail(function() {
+            toast.error('Network error. Please try again.');
+          })
+          .always(function() {
+            btnReset(btn);
+          });
       });
 
       /* ── Init ───────────────────────────────────────────────── */

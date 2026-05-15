@@ -227,6 +227,13 @@ function verifyGmail(array $data): void
         jsonResponse(false, 'Validation failed', ['errors' => ['gmail_username' => 'Please enter a valid email address.']]);
         return;
     }
+    // ── NEW: verify the domain actually has mail servers ──────────────
+    $domain = substr(strrchr($newEmail, '@'), 1);
+    if (!checkdnsrr($domain, 'MX') && !checkdnsrr($domain, 'A')) {
+        jsonResponse(false, 'The domain "' . $domain . '" doesn\'t appear to exist. Please use a real email address.', ['warn' => true]);
+        return;
+    }
+    // ──
 
     $conn = getDBConnection();
 
