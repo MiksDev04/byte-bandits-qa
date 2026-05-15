@@ -20,6 +20,10 @@ $userInitials = strtoupper(
 $userRole = htmlspecialchars($_SESSION['role'] ?? 'viewer');
 ?>
 
+<head>
+  <link rel="shortcut icon" href="../assets/images/byte-bandits-qa.ico" type="image/x-icon">
+</head>
+
 <header class="qa-header">
 
   <!-- Mobile menu toggle -->
