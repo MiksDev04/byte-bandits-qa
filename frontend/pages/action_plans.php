@@ -522,7 +522,7 @@ $pageTitle = 'Action Plans';
                         $('#viewToEditBtn').off('click').on('click', function() {
                             $('#viewActionPlanModal').modal('hide');
                             editActionPlan(plan.plan_id);
-                        });
+                        })  ;
 
                         $('#viewActionPlanModal').modal('show');
                     } else {
