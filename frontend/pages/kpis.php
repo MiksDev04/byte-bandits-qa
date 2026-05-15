@@ -709,7 +709,7 @@ $pageTitle = 'KPIs Management';
                 dataType: 'json',
                 success: function(response) {
                     if (response.success && response.data) {
-                        let options = '<option value="">Select Indicator</option>';
+                        let options = '';
                         response.data.forEach(ind => {
                             options += `<option value="${ind.indicator_id}">${escapeHtml(ind.name)} (${escapeHtml(ind.unit || 'no unit')})</option>`;
                         });
