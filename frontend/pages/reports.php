@@ -1146,6 +1146,7 @@ $(function () {
         <td>${esc(r.scheduled_date  || '—')}</td>
         <td>${esc(r.completion_date || '—')}</td>
         <td>${badge(r.status)}</td>
+        <td><span style="font-size:.8rem;">${esc(r.completed_tasks)}/${esc(r.total_tasks)}</span></td>
         <td style="max-width:160px;word-break:break-word;font-size:.78rem;color:var(--text-secondary);">${esc(r.notes || '—')}</td>
       </tr>`);
     });
