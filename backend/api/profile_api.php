@@ -8,10 +8,10 @@ session_start();
 
 // 1. Load database config FIRST (defines jsonResponse)
 require_once __DIR__ . '/../config/database.php';
-require_once '../config/api_auth.php'; // ← add
+require_once '../config/api_auth.php';
 requireApiKey();
 
-// 3. Headers
+// 2. Headers
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// 4. Auth guard
+// 3. Auth guard
 if (empty($_SESSION['logged_in'])) {
     jsonResponse(false, 'Unauthorized access', [], 401);
 }
@@ -101,21 +101,16 @@ function sendEmailViaSendGrid(
             ['to' => [['email' => $toEmail, 'name' => $toName]]],
         ],
         'from'     => ['email' => $fromAddress, 'name' => $fromName],
-        // Avoid spam flags — always include a reply_to on transactional mail
         'reply_to' => ['email' => $replyTo, 'name' => $fromName],
         'subject'  => $subject,
         'content'  => [
             ['type' => 'text/plain', 'value' => $plainBody],
             ['type' => 'text/html',  'value' => $htmlBody],
         ],
-        // Disable click & open tracking — SendGrid rewrites links through its
-        // own tracking domain, which spam filters flag on transactional mail
         'tracking_settings' => [
             'click_tracking' => ['enable' => false],
             'open_tracking'  => ['enable' => false],
         ],
-        // Mark as transactional so SendGrid bypasses unsubscribe list
-        // management — required for password/verification emails
         'mail_settings' => [
             'bypass_list_management' => ['enable' => true],
         ],
@@ -152,7 +147,7 @@ function sendEmailViaSendGrid(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Build the styled HTML email (mirrors the forgot-password template)
+// Build the styled HTML email
 // ─────────────────────────────────────────────────────────────────────────────
 function buildVerificationEmail(string $toName, string $code): array
 {
@@ -201,16 +196,16 @@ function buildVerificationEmail(string $toName, string $code): array
 HTML;
 
     $plain = "Hi {$toName},\n\n"
-        . "Your password change verification code is: {$code}\n\n"
-        . "This code expires in 10 minutes.\n\n"
-        . "If you did not request a password change, you can safely ignore this email.\n\n"
-        . "— QA System";
+           . "Your password change verification code is: {$code}\n\n"
+           . "This code expires in 10 minutes.\n\n"
+           . "If you did not request a password change, you can safely ignore this email.\n\n"
+           . "— QA System";
 
     return ['html' => $html, 'plain' => $plain];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// verifyGmail — validates env vars are set (no SMTP test needed)
+// verifyGmail — validates the new email, saves it to the database
 // ─────────────────────────────────────────────────────────────────────────────
 function verifyGmail(array $data): void
 {
@@ -226,7 +221,7 @@ function verifyGmail(array $data): void
         return;
     }
 
-    // Get the new email from the submitted form data
+    // Validate the submitted email
     $newEmail = trim($data['gmail_username'] ?? '');
     if (!$newEmail || !filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
         jsonResponse(false, 'Validation failed', ['errors' => ['gmail_username' => 'Please enter a valid email address.']]);
@@ -251,7 +246,7 @@ function verifyGmail(array $data): void
     $stmt->bind_param('si', $newEmail, $userId);
     if (!$stmt->execute()) {
         $stmt->close();
-        jsonResponse(false, 'Failed to save email address.');
+        jsonResponse(false, 'Failed to save email address. Please try again.');
         return;
     }
     $stmt->close();
@@ -286,6 +281,7 @@ function getProfile(): void
 
     $user['activity'] = getActivitySummary($userId);
 
+    // Email and gmail_connected both come from the database
     $gmailConnected          = !empty(getenv('SENDGRID_API_KEY')) && !empty($user['email']);
     $user['gmail_connected'] = $gmailConnected;
     $user['gmail_address']   = $gmailConnected ? $user['email'] : null;
@@ -425,9 +421,12 @@ function sendVerificationCode(): void
 
     $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-    // Use bcrypt for the stored hash (this is a user-initiated flow, not
-    // time-sensitive like login — the slight delay on verify is acceptable)
-    $_SESSION['pwd_verify_code']     = password_hash($code, PASSWORD_BCRYPT);
+    // Use SHA-256 + a random salt instead of bcrypt — OTPs don't need bcrypt's
+    // intentional slowness; the 5-attempt limit + 10-minute expiry handle brute-force.
+    // This removes 200–500 ms of unnecessary delay before the email is sent.
+    $salt = bin2hex(random_bytes(16));
+    $_SESSION['pwd_verify_code']     = hash('sha256', $salt . $code);
+    $_SESSION['pwd_verify_salt']     = $salt;
     $_SESSION['pwd_verify_expires']  = time() + 600;
     $_SESSION['pwd_verify_attempts'] = 0;
     unset($_SESSION['pwd_change_verified'], $_SESSION['pwd_change_verified_at']);
@@ -462,7 +461,7 @@ function verifyPasswordCode(array $data): void
 
     $code = trim($data['code'] ?? '');
 
-    if (empty($_SESSION['pwd_verify_code']) || empty($_SESSION['pwd_verify_expires'])) {
+    if (empty($_SESSION['pwd_verify_code']) || empty($_SESSION['pwd_verify_expires']) || empty($_SESSION['pwd_verify_salt'])) {
         jsonResponse(
             false,
             'No pending verification code. Please request a new one.',
@@ -472,7 +471,7 @@ function verifyPasswordCode(array $data): void
     }
 
     if (time() > $_SESSION['pwd_verify_expires']) {
-        unset($_SESSION['pwd_verify_code'], $_SESSION['pwd_verify_expires'], $_SESSION['pwd_verify_attempts']);
+        unset($_SESSION['pwd_verify_code'], $_SESSION['pwd_verify_salt'], $_SESSION['pwd_verify_expires'], $_SESSION['pwd_verify_attempts']);
         jsonResponse(
             false,
             'Verification code has expired. Please request a new one.',
@@ -483,7 +482,7 @@ function verifyPasswordCode(array $data): void
 
     $_SESSION['pwd_verify_attempts'] = ($_SESSION['pwd_verify_attempts'] ?? 0) + 1;
     if ($_SESSION['pwd_verify_attempts'] > 5) {
-        unset($_SESSION['pwd_verify_code'], $_SESSION['pwd_verify_expires'], $_SESSION['pwd_verify_attempts']);
+        unset($_SESSION['pwd_verify_code'], $_SESSION['pwd_verify_salt'], $_SESSION['pwd_verify_expires'], $_SESSION['pwd_verify_attempts']);
         jsonResponse(
             false,
             'Too many failed attempts. Please request a new verification code.',
@@ -492,7 +491,11 @@ function verifyPasswordCode(array $data): void
         return;
     }
 
-    if (!password_verify($code, $_SESSION['pwd_verify_code'])) {
+    // Constant-time comparison using SHA-256 + stored salt
+    $salt         = $_SESSION['pwd_verify_salt'];
+    $expectedHash = hash('sha256', $salt . $code);
+
+    if (!hash_equals($expectedHash, $_SESSION['pwd_verify_code'])) {
         $left = max(0, 5 - $_SESSION['pwd_verify_attempts']);
         jsonResponse(
             false,
@@ -502,7 +505,7 @@ function verifyPasswordCode(array $data): void
         return;
     }
 
-    unset($_SESSION['pwd_verify_code'], $_SESSION['pwd_verify_expires'], $_SESSION['pwd_verify_attempts']);
+    unset($_SESSION['pwd_verify_code'], $_SESSION['pwd_verify_salt'], $_SESSION['pwd_verify_expires'], $_SESSION['pwd_verify_attempts']);
     $_SESSION['pwd_change_verified']    = true;
     $_SESSION['pwd_change_verified_at'] = time();
 
