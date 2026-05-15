@@ -15,6 +15,7 @@ if (!empty($_SESSION['logged_in'])) {
   <meta name="x-api-key" content="<?= htmlspecialchars(getenv('APP_API_KEY'), ENT_QUOTES, 'UTF-8') ?>">
 
   <title>Forgot Password — QA Management System</title>
+  <link rel="shortcut icon" href="../assets/images/byte-bandits-qa.ico" type="image/x-icon">
 
   <!-- Bootstrap 5 -->
   <link rel="stylesheet"

@@ -26,6 +26,7 @@ $pageTitle = 'Audits & Tasks';
     <meta name="x-api-key" content="<?= htmlspecialchars(getenv('APP_API_KEY'), ENT_QUOTES, 'UTF-8') ?>">
 
     <title><?= htmlspecialchars($pageTitle) ?> — QA System</title>
+  <link rel="shortcut icon" href="../assets/images/byte-bandits-qa.ico" type="image/x-icon">
 
     <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">

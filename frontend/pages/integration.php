@@ -18,6 +18,7 @@ $pageTitle = 'QA System User Manual';
     <meta name="x-api-key" content="<?= htmlspecialchars(getenv('APP_API_KEY'), ENT_QUOTES, 'UTF-8') ?>">
 
     <title><?= htmlspecialchars($pageTitle) ?> - QA System</title>
+    <link rel="shortcut icon" href="../assets/images/byte-bandits-qa.ico" type="image/x-icon">
 
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
