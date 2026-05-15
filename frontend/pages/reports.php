@@ -438,7 +438,7 @@ $pageTitle = 'Reports';
                     <th>Unit</th>
                     <th>Target</th>
                     <th>Latest Value</th>
-                    <th>Period</th>
+                    <th>School Year</th>
                     <th>Meets Target</th>
                   </tr>
                 </thead>
@@ -1311,6 +1311,9 @@ $pageTitle = 'Reports';
       /* ──────────────────────────────────────────────────────────
          KPIs
       ────────────────────────────────────────────────────────── */
+      /* ──────────────────────────────────────────────────────────
+          KPIs  (fixed: chart parseFloat · school-year filter · label)
+       ────────────────────────────────────────────────────────── */
       function loadKpis() {
         if (cache['kpis']) {
           renderKpis(cache['kpis']);
@@ -1320,70 +1323,137 @@ $pageTitle = 'Reports';
       }
 
       function renderKpis(rows) {
+        // ── Apply school-year date filter ──────────────────────
+        const f = pageFilter.from,
+          t = pageFilter.to;
+
+        if (f || t) {
+          const fromYear = f ? parseInt(f.slice(0, 4), 10) : null;
+          const toYear = t ? parseInt(t.slice(0, 4), 10) : null;
+
+          rows = rows.map(ind => {
+            // Keep only records whose school_year start falls in the selected year range
+            const filteredRecords = (ind.records || []).filter(rec => {
+              const raw = String(rec.school_year || '').split(' - ')[0].trim();
+              const yr = parseInt(raw, 10);
+              if (isNaN(yr)) return false;
+              if (fromYear !== null && yr < fromYear) return false;
+              if (toYear !== null && yr > toYear) return false;
+              return true;
+            });
+
+            const latest = filteredRecords[0] ?? null;
+            const actualVal = latest ? parseFloat(latest.actual_value) : null;
+            const targetVal = (ind.target_value != null && ind.target_value !== '') ?
+              parseFloat(ind.target_value) : null;
+
+            return {
+              ...ind,
+              records: filteredRecords,
+              latest_value: actualVal,
+              latest_period: latest ?
+                latest.school_year + (latest.semester ? ' · ' + latest.semester : '') :
+                null,
+              meets_target: (actualVal !== null && targetVal !== null) ?
+                (actualVal >= targetVal) :
+                null,
+            };
+          });
+
+          // When a filter is active, hide indicators with no records in range
+          rows = rows.filter(ind => ind.records.length > 0);
+        }
+
+        // ── Table ──────────────────────────────────────────────
         $('#kpis-count').text(rows.length + ' indicator' + (rows.length !== 1 ? 's' : ''));
         const tbody = $('#kpis-tbody').empty();
+
         if (!rows.length) {
-          tbody.html(emptyRow(8, 'No KPI indicators found'));
+          tbody.html(emptyRow(8, 'No KPI indicators found for the selected school year range'));
+          if (chartInst['chart-kpi']) {
+            chartInst['chart-kpi'].destroy();
+            delete chartInst['chart-kpi'];
+          }
           return;
         }
+
         rows.forEach(r => {
           tbody.append(`<tr>
-        <td>${esc(r.indicator_id)}</td>
-        <td style="font-weight:600;">${esc(r.name)}</td>
-        <td>${esc(r.category || '—')}</td>
-        <td>${esc(r.unit    || '—')}</td>
-        <td>${r.target_value != null ? Number(r.target_value).toLocaleString('en-PH') : '—'}</td>
-        <td style="font-weight:700;">${r.latest_value != null ? Number(r.latest_value).toLocaleString('en-PH') : '—'}</td>
-        <td style="font-size:.78rem;color:var(--text-muted);">${esc(r.latest_period || '—')}</td>
-        <td>${meetsTarget(r.meets_target)}</td>
-      </tr>`);
+            <td>${esc(r.indicator_id)}</td>
+            <td style="font-weight:600;">${esc(r.name)}</td>
+            <td>${esc(r.category || '—')}</td>
+            <td>${esc(r.unit    || '—')}</td>
+            <td>${r.target_value != null ? Number(r.target_value).toLocaleString('en-PH') : '—'}</td>
+            <td style="font-weight:700;">${r.latest_value != null ? Number(r.latest_value).toLocaleString('en-PH') : '—'}</td>
+            <td style="font-size:.78rem;color:var(--text-muted);">${esc(r.latest_period || '—')}</td>
+            <td>${meetsTarget(r.meets_target)}</td>
+          </tr>`);
         });
 
-        // Bar chart: actual vs target
+        // ── Bar chart: Actual vs Target ────────────────────────
         const ctx = document.getElementById('chart-kpi');
-        if (ctx && rows.length) {
-          if (chartInst['chart-kpi']) chartInst['chart-kpi'].destroy();
-          chartInst['chart-kpi'] = new Chart(ctx, {
-            type: 'bar',
-            data: {
-              labels: rows.map(r => r.name),
-              datasets: [{
-                  label: 'Target',
-                  data: rows.map(r => r.target_value),
-                  backgroundColor: 'rgba(45,90,61,.18)',
-                  borderColor: '#2d5a3d',
-                  borderWidth: 2,
+        if (!ctx) return;
+        if (chartInst['chart-kpi']) chartInst['chart-kpi'].destroy();
+
+        chartInst['chart-kpi'] = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: rows.map(r => r.name),
+            datasets: [{
+                label: 'Target',
+                // parseFloat prevents string/null values from silently breaking bars
+                data: rows.map(r => r.target_value != null ? parseFloat(r.target_value) : null),
+                backgroundColor: 'rgba(45,90,61,.18)',
+                borderColor: '#2d5a3d',
+                borderWidth: 2,
+              },
+              {
+                label: 'Actual (Latest)',
+                data: rows.map(r => r.latest_value != null ? parseFloat(r.latest_value) : null),
+                backgroundColor: 'rgba(41,128,185,.65)',
+                borderColor: '#2980b9',
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                labels: {
+                  font: {
+                    family: 'var(--font)',
+                    size: 11
+                  },
+                  boxWidth: 12,
                 },
-                {
-                  label: 'Actual (Latest)',
-                  data: rows.map(r => r.latest_value),
-                  backgroundColor: 'rgba(41,128,185,.65)',
-                  borderColor: '#2980b9',
-                  borderWidth: 2,
+              },
+              tooltip: {
+                callbacks: {
+                  label: ctx => {
+                    const v = ctx.raw;
+                    return v != null ?
+                      `${ctx.dataset.label}: ${Number(v).toLocaleString('en-PH')}` :
+                      `${ctx.dataset.label}: N/A`;
+                  },
                 },
-              ]
+              },
             },
-            options: {
-              responsive: true,
-              plugins: {
-                legend: {
-                  labels: {
-                    font: {
-                      family: 'var(--font)',
-                      size: 11
-                    },
-                    boxWidth: 12
+            scales: {
+              y: {
+                beginAtZero: true
+              },
+              x: {
+                ticks: {
+                  maxRotation: 35,
+                  font: {
+                    size: 10
                   }
                 }
               },
-              scales: {
-                y: {
-                  beginAtZero: true
-                }
-              }
-            }
-          });
-        }
+            },
+          },
+        });
       }
 
       /* ──────────────────────────────────────────────────────────
