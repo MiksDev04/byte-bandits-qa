@@ -1352,11 +1352,9 @@ $pageTitle = 'Reports';
               records: filteredRecords,
               latest_value: actualVal,
               latest_period: latest ?
-                latest.school_year + (latest.semester ? ' · ' + latest.semester : '') :
-                null,
+                latest.school_year + (latest.period_term ? ' · ' + latest.period_term : '') : null,
               meets_target: (actualVal !== null && targetVal !== null) ?
-                (actualVal >= targetVal) :
-                null,
+                (actualVal >= targetVal) : null,
             };
           });
 

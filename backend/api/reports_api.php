@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Reports API
  * Quality Assurance Management System
@@ -30,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 session_start();
 require_once '../config/database.php';
 require_once '../config/api_auth.php'; // ← add
-requireApiKey();
+requireApiKey();  
 
 
 if (empty($_SESSION['logged_in'])) {
@@ -76,8 +75,7 @@ try {
 /* ============================================================
    SUMMARY – overview counts and breakdowns
    ============================================================ */
-function getSummary()
-{
+function getSummary() {
     $conn = getDBConnection();
 
     // ── Audits ──────────────────────────────────────────────
@@ -175,11 +173,8 @@ function getSummary()
         'tasks'     => ['total' => $taskTotal,    'by_status' => $taskByStatus],
         'plans'     => ['total' => $planTotal,    'by_status' => $planByStatus],
         'kpis'      => ['total' => $kpiCount,     'meeting_target' => $kpiMeetingTarget, 'avg' => $kpiAvg],
-        'surveys'   => [
-            'total' => $surveyTotal,
-            'by_status' => $surveyByStatus,
-            'total_responses' => $totalResponses
-        ],
+        'surveys'   => ['total' => $surveyTotal,  'by_status' => $surveyByStatus,
+                        'total_responses' => $totalResponses],
         'standards' => ['active' => $standardsCount, 'policies' => $policiesCount],
         'recent_audits' => $recentAudits,
         'recent_surveys' => $recentSurveys,
@@ -189,8 +184,7 @@ function getSummary()
 /* ============================================================
    AUDITS REPORT
    ============================================================ */
-function getAuditsReport()
-{
+function getAuditsReport() {
     $rows = dbFetchAll(
         "SELECT a.*,
                 COUNT(t.task_id)                                       AS total_tasks,
@@ -209,8 +203,7 @@ function getAuditsReport()
 /* ============================================================
    TASKS REPORT
    ============================================================ */
-function getTasksReport()
-{
+function getTasksReport() {
     $rows = dbFetchAll(
         "SELECT t.*,
                 a.title AS audit_title, a.audit_type,
@@ -227,34 +220,28 @@ function getTasksReport()
 /* ============================================================
    KPI REPORT
    ============================================================ */
-function getKpiReport()
-{
+function getKpiReport() {
     $indicators = dbFetchAll(
         "SELECT * FROM qa_indicators ORDER BY category, name"
     );
 
-    $records = dbFetchAll(
-        "SELECT * FROM qa_kpi_records 
-         ORDER BY CAST(SUBSTRING_INDEX(school_year, ' - ', 1) AS UNSIGNED) DESC, semester DESC"
-    );
-
-    $recordsByIndicator = [];
-    foreach ($records as $record) {
-        $recordsByIndicator[$record['indicator_id']][] = $record;
-    }
-
     foreach ($indicators as &$ind) {
-        $ind_records = $recordsByIndicator[$ind['indicator_id']] ?? [];
-        $ind['records'] = $ind_records;
+        $records = dbFetchAll(
+            "SELECT * FROM qa_kpi_records
+             WHERE indicator_id = ?
+             ORDER BY school_year DESC, period_term",
+            'i', [$ind['indicator_id']]
+        );
+        $ind['records'] = $records;
 
-        $latest = $ind_records[0] ?? null;
+        // Latest record
+        $latest = $records[0] ?? null;
         $ind['latest_value']  = $latest ? (float) $latest['actual_value'] : null;
-        $ind['latest_period'] = $latest ? $latest['school_year'] . ' ' . $latest['semester'] : null;
-        $ind['meets_target']  = $latest && $ind['target_value'] !== null && $ind['target_value'] !== ''
-            ? ((float) $latest['actual_value'] >= (float) $ind['target_value'])
-            : null;
+        $ind['latest_period'] = $latest ? $latest['school_year'] . ' ' . $latest['period_term'] : null;
+        $ind['meets_target']  = $latest && $ind['target_value'] !== null
+                                    ? ((float) $latest['actual_value'] >= (float) $ind['target_value'])
+                                    : null;
     }
-    unset($ind);
 
     jsonResponse(true, 'KPI report loaded', ['data' => $indicators]);
 }
@@ -262,8 +249,7 @@ function getKpiReport()
 /* ============================================================
    SURVEYS REPORT
    ============================================================ */
-function getSurveysReport()
-{
+function getSurveysReport() {
     $rows = dbFetchAll(
         "SELECT s.*,
                 u.full_name AS creator_name,
@@ -280,8 +266,7 @@ function getSurveysReport()
 /* ============================================================
    ACTION PLANS REPORT
    ============================================================ */
-function getActionPlansReport()
-{
+function getActionPlansReport() {
     $rows = dbFetchAll(
         "SELECT p.*, a.title AS audit_title, a.audit_type
          FROM qa_action_plans p
@@ -295,8 +280,7 @@ function getActionPlansReport()
 /* ============================================================
    STANDARDS REPORT
    ============================================================ */
-function getStandardsReport()
-{
+function getStandardsReport() {
     $rows = dbFetchAll(
         "SELECT s.*,
                 COUNT(p.policy_id)                     AS total_policies,
@@ -315,15 +299,13 @@ function getStandardsReport()
 /* ============================================================
    SURVEY RESPONSES REPORT (per-survey rollup)
    ============================================================ */
-function getSurveyResponsesReport()
-{
+function getSurveyResponsesReport() {
     $surveyId = isset($_GET['survey_id']) ? (int) $_GET['survey_id'] : null;
 
     if ($surveyId) {
         $surveys = dbFetchAll(
             "SELECT survey_id, title, target_group, status FROM qa_surveys WHERE survey_id = ?",
-            'i',
-            [$surveyId]
+            'i', [$surveyId]
         );
     } else {
         $surveys = dbFetchAll(
@@ -337,15 +319,12 @@ function getSurveyResponsesReport()
 
         $questions = dbFetchAll(
             "SELECT question_id, question_text, question_type FROM qa_survey_questions
-             WHERE survey_id = ? ORDER BY sort_order",
-            'i',
-            [$sid]
+             WHERE survey_id = ? ORDER BY sort_order", 'i', [$sid]
         );
 
         $responses = (int) (dbFetchOne(
             "SELECT COUNT(DISTINCT respondent_id) AS cnt FROM qa_survey_respondents WHERE survey_id = ?",
-            'i',
-            [$sid]
+            'i', [$sid]
         )['cnt'] ?? 0);
 
         // Rating averages per question
@@ -355,8 +334,7 @@ function getSurveyResponsesReport()
              JOIN qa_survey_respondents r ON r.respondent_id = a.respondent_id
              WHERE r.survey_id = ? AND a.rating_value IS NOT NULL
              GROUP BY a.question_id",
-            'i',
-            [$sid]
+            'i', [$sid]
         );
         $ratingsMap = [];
         foreach ($ratingAverages as $ra) {
@@ -375,8 +353,7 @@ function getSurveyResponsesReport()
              WHERE r.survey_id = ? AND a.option_id IS NOT NULL
              GROUP BY a.question_id, a.option_id
              ORDER BY a.question_id, freq DESC",
-            'i',
-            [$sid]
+            'i', [$sid]
         );
         $optFreqMap = [];
         foreach ($optionFreqs as $of) {
