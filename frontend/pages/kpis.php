@@ -336,7 +336,6 @@ $pageTitle = 'KPIs Management';
                                     <option value="">Select Term</option>
                                     <option value="1st Semester">1st Semester</option>
                                     <option value="2nd Semester">2nd Semester</option>
-                                    <option value="Summer">Summer</option>
                                     <option value="Annual">Annual</option>
                                 </select>
                                 <div class="form-error-msg"></div>
