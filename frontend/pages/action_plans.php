@@ -218,6 +218,29 @@ $pageTitle = 'Action Plans';
             </div>
         </div>
     </div>
+    <!-- View Action Plan Modal -->
+    <div class="modal fade" id="viewActionPlanModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content" style="border-radius: var(--radius-lg);">
+                <div class="modal-header" style="border-bottom-color: var(--border-light);">
+                    <h5 class="modal-title" style="font-weight: 700;">
+                        <i class="fa-solid fa-eye me-2" style="color: var(--primary);"></i>
+                        Action Plan Details
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="viewActionPlanBody">
+                    <!-- Populated by JS -->
+                </div>
+                <div class="modal-footer" style="border-top-color: var(--border-light);">
+                    <button type="button" class="btn-outline-qa" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn-primary-qa" id="viewToEditBtn">
+                        <i class="fa-solid fa-edit me-1"></i> Edit This Plan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -247,6 +270,16 @@ $pageTitle = 'Action Plans';
                     deleteActionPlan(deleteId);
                 }
             });
+
+            // Show resolution field only when status is Resolved or Closed
+            $('#status').on('change', function() {
+                const val = $(this).val();
+                if (val === 'Resolved' || val === 'Closed') {
+                    $('#resolutionGroup').slideDown();
+                } else {
+                    $('#resolutionGroup').slideUp();
+                }
+            }).trigger('change');
         });
 
         function loadActionPlans() {
@@ -275,6 +308,8 @@ $pageTitle = 'Action Plans';
             });
         }
 
+
+
         function renderActionPlans(plans) {
             if (!plans || !plans.length) {
                 $('#actionPlansList').html('<div class="text-center py-5 text-muted">No action plans found</div>');
@@ -302,11 +337,15 @@ $pageTitle = 'Action Plans';
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mt-2">
                                     <small class="text-muted">Target: ${plan.target_date || 'Not set'}</small>
+                                   // Replace the action buttons div in renderActionPlans:
                                     <div>
-                                        <button class="btn btn-sm btn-outline-secondary me-1" onclick="editActionPlan(${plan.plan_id})" style="padding: 4px 8px;">
+                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="viewActionPlan(${plan.plan_id})" style="padding: 4px 8px;" title="View">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary me-1" onclick="editActionPlan(${plan.plan_id})" style="padding: 4px 8px;" title="Edit">
                                             <i class="fa-solid fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete(${plan.plan_id})" style="padding: 4px 8px;">
+                                        <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete(${plan.plan_id})" style="padding: 4px 8px;" title="Delete">
                                             <i class="fa-solid fa-trash"></i>
                                         </button>
                                     </div>
@@ -409,6 +448,87 @@ $pageTitle = 'Action Plans';
                         clearFormErrors('#actionPlanForm');
                     } else {
                         toast.error('Failed to load action plan data');
+                    }
+                },
+                error: function() {
+                    toast.error('Error loading action plan');
+                }
+            });
+        }
+
+        function viewActionPlan(id) {
+            $.ajax({
+                url: ACTION_PLANS_API + '?action=get&id=' + id,
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success && response.data) {
+                        const plan = response.data;
+
+                        const statusClass = `status-${plan.status.replace(/ /g, '-')}`;
+
+                        const resolutionSection = (plan.status === 'Resolved' || plan.status === 'Closed') ?
+                            `<div class="mb-3 p-3" style="background: #e8f5e9; border-radius: var(--radius); border-left: 3px solid #4caf50;">
+                            <label class="form-label-qa" style="color: #2e7d32;">
+                                <i class="fa-solid fa-circle-check me-1"></i> Resolution
+                            </label>
+                            <p class="mb-0" style="font-size: .9rem;">${escapeHtml(plan.resolution || 'No resolution notes provided.')}</p>
+                       </div>` :
+                            '';
+
+                        const html = `
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <span class="badge-qa new" style="background: var(--primary-light); color: var(--primary); font-size: .8rem;">
+                            Audit #${plan.audit_id}${plan.audit_title ? ' — ' + escapeHtml(plan.audit_title) : ''}
+                        </span>
+                        <span class="status-badge ${statusClass}">${plan.status}</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label-qa">Title</label>
+                        <p class="mb-0 fw-600" style="font-size: 1rem;">${escapeHtml(plan.title)}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label-qa">Description</label>
+                        <p class="mb-0" style="font-size: .9rem; color: var(--text-muted);">
+                            ${plan.description ? escapeHtml(plan.description) : '<em>No description provided.</em>'}
+                        </p>
+                    </div>
+
+                    <div class="mb-3 p-3" style="background: #fff8e1; border-radius: var(--radius); border-left: 3px solid #ff9800;">
+                        <label class="form-label-qa" style="color: #e65100;">
+                            <i class="fa-solid fa-triangle-exclamation me-1"></i> Root Cause
+                        </label>
+                        <p class="mb-0" style="font-size: .9rem;">${escapeHtml(plan.root_cause)}</p>
+                    </div>
+
+                    ${resolutionSection}
+
+                    <div class="row">
+                        <div class="col-sm-6 mb-3">
+                            <label class="form-label-qa">Target Date</label>
+                            <p class="mb-0">${plan.target_date || '<span class="text-muted">Not set</span>'}</p>
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <label class="form-label-qa">Created</label>
+                            // Change this line in the view modal HTML string:
+<p class="mb-0 text-muted" style="font-size: .875rem;">${plan.created_date || '—'}</p>
+                        </div>
+                    </div>
+                `;
+
+                        $('#viewActionPlanBody').html(html);
+
+                        // Wire the "Edit This Plan" button
+                        $('#viewToEditBtn').off('click').on('click', function() {
+                            $('#viewActionPlanModal').modal('hide');
+                            editActionPlan(plan.plan_id);
+                        });
+
+                        $('#viewActionPlanModal').modal('show');
+                    } else {
+                        toast.error('Failed to load action plan details');
                     }
                 },
                 error: function() {
