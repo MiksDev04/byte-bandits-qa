@@ -385,7 +385,7 @@ function changePassword(array $data): void
         jsonResponse(false, 'User not found', [], 404);
     }
     if (!password_verify($data['current_password'], $row['password_hash'])) {
-        jsonResponse(false, 'Validation failed', ['errors' => ['current_password' => 'Current password is incorrect']]);
+        jsonResponse(false, 'Current password is incorrect');
     }
 
     $newHash = password_hash($data['new_password'], PASSWORD_BCRYPT);
