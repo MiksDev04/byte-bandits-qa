@@ -226,20 +226,41 @@ function verifyGmail(array $data): void
         return;
     }
 
-    $conn = getDBConnection();
-    $stmt = $conn->prepare("SELECT email FROM qa_users WHERE user_id = ?");
-    $stmt->bind_param('i', $userId);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-
-    if (!$row || empty(trim($row['email'] ?? ''))) {
-        jsonResponse(false, 'No email address found for your account.');
+    // Get the new email from the submitted form data
+    $newEmail = trim($data['gmail_username'] ?? '');
+    if (!$newEmail || !filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+        jsonResponse(false, 'Validation failed', ['errors' => ['gmail_username' => 'Please enter a valid email address.']]);
         return;
     }
 
-    jsonResponse(true, 'Email service is configured and ready.', [
-        'gmail_address' => $row['email'],
+    $conn = getDBConnection();
+
+    // Check if email is already used by another account
+    $stmt = $conn->prepare("SELECT user_id FROM qa_users WHERE email = ? AND user_id != ?");
+    $stmt->bind_param('si', $newEmail, $userId);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+        $stmt->close();
+        jsonResponse(false, 'Validation failed', ['errors' => ['gmail_username' => 'This email is already in use by another account.']]);
+        return;
+    }
+    $stmt->close();
+
+    // Save the new email to the database
+    $stmt = $conn->prepare("UPDATE qa_users SET email = ? WHERE user_id = ?");
+    $stmt->bind_param('si', $newEmail, $userId);
+    if (!$stmt->execute()) {
+        $stmt->close();
+        jsonResponse(false, 'Failed to save email address.');
+        return;
+    }
+    $stmt->close();
+
+    // Keep session in sync
+    $_SESSION['email'] = $newEmail;
+
+    jsonResponse(true, 'Email updated successfully.', [
+        'gmail_address' => $newEmail,
     ]);
 }
 
