@@ -337,7 +337,6 @@ $pageTitle = 'Action Plans';
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center mt-2">
                                     <small class="text-muted">Target: ${plan.target_date || 'Not set'}</small>
-                                   // Replace the action buttons div in renderActionPlans:
                                     <div>
                                         <button class="btn btn-sm btn-outline-primary me-1" onclick="viewActionPlan(${plan.plan_id})" style="padding: 4px 8px;" title="View">
                                             <i class="fa-solid fa-eye"></i>
@@ -512,8 +511,7 @@ $pageTitle = 'Action Plans';
                         </div>
                         <div class="col-sm-6 mb-3">
                             <label class="form-label-qa">Created</label>
-                            // Change this line in the view modal HTML string:
-<p class="mb-0 text-muted" style="font-size: .875rem;">${plan.created_date || '—'}</p>
+                            <p class="mb-0 text-muted" style="font-size: .875rem;">${plan.created_date || '—'}</p>
                         </div>
                     </div>
                 `;
