@@ -426,7 +426,6 @@ $pageTitle = 'KPIs Management';
                     <div class="mb-3" id="lms-field-selector" style="display:none;">
                         <label class="form-label-qa">Select Data Field to Import</label>
                         <select class="form-control-qa" id="import_lms_field">
-                            <option value="">Select Field</option>
                             <option value="avg_grade">Average Grade (%)</option>
                             <option value="submission_rate">Submission Rate (%)</option>
                             <option value="quiz_pass_rate">Quiz Pass Rate (%)</option>
@@ -446,10 +445,16 @@ $pageTitle = 'KPIs Management';
                     <div class="mb-3" id="faculty-field-selector" style="display:none;">
                         <label class="form-label-qa">Select Data Field to Import</label>
                         <select class="form-control-qa" id="import_faculty_field">
-                            <option value="">Select Field</option>
                             <option value="avg_rating">Average Rating</option>
                             <option value="response_rate">Response Rate (%)</option>
                             <option value="total_responses">Total Responses</option>
+                            <option value="total_classes">Total Classes Evaluated</option>
+                            <option value="total_faculty">Total Faculty Evaluated</option>
+                            <option value="above_threshold">Faculty Above Threshold</option>
+                            <option value="below_threshold">Faculty Below Threshold</option>
+                            <option value="highest_rating">Highest Rating</option>
+                            <option value="lowest_rating">Lowest Rating</option>
+                            <option value="completion_rate">Completion Rate (%)</option>
                         </select>
                         <div class="form-error-msg"></div>
                     </div>

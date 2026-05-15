@@ -214,8 +214,7 @@ function getKPIs() {
         $indicatorQuery = "SELECT indicator_id, name, target_value
                            FROM qa_indicators
                            WHERE target_value IS NOT NULL AND target_value > 0
-                           ORDER BY indicator_id
-                           LIMIT 4";
+                           ORDER BY indicator_id";
 
         $result = $conn->query($indicatorQuery);
 

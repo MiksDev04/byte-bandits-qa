@@ -516,9 +516,14 @@ $pageTitle = 'Dashboard';
                       font: {
                         size: 11
                       },
+                      maxRotation: 30,
+                      callback: function(value, index) {
+                        const label = this.getLabelForValue(index);
+                        return label.length > 16 ? label.substring(0, 16) + '…' : label;
+                      }
                     },
                     grid: {
-                      display: false,
+                      display: false
                     },
                   },
                 },
@@ -612,9 +617,14 @@ $pageTitle = 'Dashboard';
                       font: {
                         size: 11
                       },
+                      maxRotation: 30,
+                      callback: function(value, index) {
+                        const label = this.getLabelForValue(index);
+                        return label.length > 16 ? label.substring(0, 16) + '…' : label;
+                      }
                     },
                     grid: {
-                      display: false,
+                      display: false
                     },
                   },
                 },
