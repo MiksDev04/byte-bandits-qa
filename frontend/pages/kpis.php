@@ -399,7 +399,6 @@ $pageTitle = 'KPIs Management';
                     <div class="mb-3">
                         <label class="form-label-qa">Select Indicator to Map Data</label>
                         <select class="form-control-qa" id="import_indicator_id" required>
-                            <option value="">Select Indicator</option>
                         </select>
                         <div class="form-error-msg"></div>
                     </div>

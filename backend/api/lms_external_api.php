@@ -111,20 +111,16 @@ function fetchLMSData($year, $term) {
 function fetchFacultyEvalData($year, $term) {
     // Mock data - replace with actual faculty evaluation API
     $mockData = [
-        'avg_grade' => 87.5,
-        'submission_rate' => 11.8,
-        'quiz_pass_rate' => 100,
-        'quiz_attempts' => 1,
-        'quiz_passed' => 1,
-        'total_quizzes' => 2,
-        'total_submitted' => 11,
-        'total_tasks' => 11,
-        'total_students' => 13,
-        'total_expected' => 93,
-        'total_classes' => 7,
-        'avg_rating' => 4.2,
-        'response_rate' => 85.5,
-        'total_responses' => 342
+        'avg_rating'        => 4.2,   // Average faculty rating given by students (scale 1-5)
+        'response_rate'     => 85.5,  // % of students who completed the evaluation form
+        'total_responses'   => 342,   // Total evaluation forms submitted
+        'total_classes'     => 7,     // Total classes that were evaluated
+        'total_faculty'     => 5,     // Total number of faculty members evaluated
+        'above_threshold'   => 4,     // Number of faculty rated 4.0 and above
+        'below_threshold'   => 1,     // Number of faculty rated below 4.0
+        'highest_rating'    => 4.8,   // Highest individual faculty rating
+        'lowest_rating'     => 3.6,   // Lowest individual faculty rating
+        'completion_rate'   => 78.5,  // % of faculty evaluations fully completed (all questions answered)
     ];
     
     echo json_encode(['success' => true, 'data' => $mockData]);
