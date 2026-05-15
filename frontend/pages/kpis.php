@@ -721,7 +721,7 @@ $pageTitle = 'KPIs Management';
         function loadYearDropdowns() {
             const currentYear = new Date().getFullYear();
             let options = '<option value="">Select Year</option>';
-            for (let i = currentYear - 5; i <= currentYear + 2; i++) {
+            for (let i = currentYear - 1; i <= currentYear + 2; i++) {
                 let nextYear = i;
                 nextYear++;
                 options += `<option value="${i} - ${nextYear}">${i} - ${nextYear}</option>`;
