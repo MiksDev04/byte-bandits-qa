@@ -339,7 +339,7 @@ $pageTitle = 'Reports';
               <thead>
                 <tr>
                   <th>#</th><th>Title</th><th>Type</th><th>Scheduled</th>
-                  <th>Completion</th><th>Status</th><th>Tasks</th><th>Progress</th><th>Notes</th>
+                  <th>Completion</th><th>Status</th><th>Tasks</th><th>Notes</th>
                 </tr>
               </thead>
               <tbody id="audits-tbody">
