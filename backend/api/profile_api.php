@@ -196,10 +196,10 @@ function buildVerificationEmail(string $toName, string $code): array
 HTML;
 
     $plain = "Hi {$toName},\n\n"
-           . "Your password change verification code is: {$code}\n\n"
-           . "This code expires in 10 minutes.\n\n"
-           . "If you did not request a password change, you can safely ignore this email.\n\n"
-           . "— QA System";
+        . "Your password change verification code is: {$code}\n\n"
+        . "This code expires in 10 minutes.\n\n"
+        . "If you did not request a password change, you can safely ignore this email.\n\n"
+        . "— QA System";
 
     return ['html' => $html, 'plain' => $plain];
 }
@@ -373,10 +373,10 @@ function changePassword(array $data): void
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
+
     if (!$row) {
         jsonResponse(false, 'User not found', [], 404);
     }
-
     if (!password_verify($data['current_password'], $row['password_hash'])) {
         jsonResponse(false, 'Validation failed', ['errors' => ['current_password' => 'Current password is incorrect']]);
     }

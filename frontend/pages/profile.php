@@ -556,58 +556,28 @@ $pageTitle = 'My Profile';
                 <!-- Status banner (rendered by JS) -->
                 <div id="gmailStatusBanner"></div>
 
-                <!-- Setup hint (shown only when disconnected) -->
-                <div id="gmailHint" class="hint-box" style="display:none;">
-                  <strong style="display:block;margin-bottom:4px;">
-                    <i class="fa-solid fa-circle-info me-1"></i> How to get a Gmail App Password
-                  </strong>
-                  1. Sign in to your Google account &rarr;
-                  <a href="https://myaccount.google.com/security" target="_blank" rel="noopener">Security</a><br>
-                  2. Enable <strong>2-Step Verification</strong> if not already on.<br>
-                  3. Search for <strong>"App passwords"</strong>, choose <em>Mail</em> &rarr; <em>Other (Custom name)</em>.<br>
-                  4. Copy the 16-character password Google shows you and paste it below.
-                </div>
+
 
                 <!-- Connect / Re-connect form -->
                 <form id="gmailForm" novalidate style="display:none;">
-                  <div class="row g-3">
+                  <p style="font-size:.84rem;color:var(--text-secondary,#6b6860);margin:0 0 14px;">
+                    <i class="fa-solid fa-circle-info me-1" style="color:var(--primary,#2d5a3d);"></i>
+                    Enter a real email address — this is where you'll receive password reset codes
+                    and system notifications.
+                  </p>
 
-                    <div class="col-12 col-md-6">
-                      <label class="form-label-qa" for="gmailUsername">Gmail Address</label>
-                      <input type="email" class="form-control-qa" id="gmailUsername"
-                        placeholder="yourapp@gmail.com">
-                      <div class="invalid-feedback-qa" id="errGmailUsername"></div>
-                    </div>
-
-                    <div class="col-12 col-md-6">
-                      <label class="form-label-qa" for="gmailPassword">App Password</label>
-                      <div style="position:relative;">
-                        <input type="password" class="form-control-qa" id="gmailPassword"
-                          placeholder="16-character app password"
-                          style="padding-right:40px;">
-                        <button type="button" id="toggleAppPass"
-                          style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
-                                     background:none;border:none;color:var(--text-secondary);cursor:pointer;">
-                          <i class="fa-regular fa-eye" id="appPassEyeIcon"></i>
-                        </button>
-                      </div>
-                      <div class="invalid-feedback-qa" id="errGmailPassword"></div>
-                    </div>
-
-                    <div class="col-12 col-md-6">
-                      <label class="form-label-qa" for="gmailFromName">Sender Name</label>
-                      <input type="text" class="form-control-qa" id="gmailFromName"
-                        placeholder="QA System" value="QA System">
-                    </div>
-
+                  <div class="col-12 col-md-6">
+                    <label class="form-label-qa" for="gmailUsername">Email Address</label>
+                    <input type="email" class="form-control-qa" id="gmailUsername"
+                      placeholder="e.g. yourname@gmail.com">
+                    <div class="invalid-feedback-qa" id="errGmailUsername"></div>
                   </div>
 
                   <div class="d-flex align-items-center gap-2 mt-3 flex-wrap">
                     <button type="submit" class="btn-primary-qa" id="btnConnectGmail">
-                      <i class="fa-brands fa-google me-1"></i> Verify &amp; Connect
+                      <i class="fa-solid fa-floppy-disk me-1"></i> Save Email
                     </button>
-                    <button type="button" class="gmail-toggle-link" id="btnCancelGmail"
-                      style="display:none;">
+                    <button type="button" class="gmail-toggle-link" id="btnCancelGmail" style="display:none;">
                       Cancel
                     </button>
                   </div>
@@ -1043,7 +1013,6 @@ $pageTitle = 'My Profile';
           </button>
         </div>
       `);
-          $('#gmailHint').hide();
           $('#gmailForm').hide();
           $('#gmailUsername').val(address);
           bindReconnect();
@@ -1057,7 +1026,6 @@ $pageTitle = 'My Profile';
           </div>
         </div>
       `);
-          $('#gmailHint').show();
           $('#gmailForm').show();
           $('#btnCancelGmail').hide();
         }
@@ -1065,7 +1033,6 @@ $pageTitle = 'My Profile';
 
       function bindReconnect() {
         $('#btnReconnectGmail').off('click').on('click', function() {
-          $('#gmailHint').show();
           $('#gmailForm').slideDown(160);
           $('#btnCancelGmail').show();
           $(this).closest('.gmail-status-banner').find('.gmail-toggle-link').hide();
@@ -1074,7 +1041,6 @@ $pageTitle = 'My Profile';
 
       /* ── Cancel reconnect ───────────────────────────────────── */
       $('#btnCancelGmail').on('click', function() {
-        $('#gmailHint').hide();
         $('#gmailForm').slideUp(160);
         bindReconnect();
         $('#gmailStatusBanner .gmail-toggle-link').show();
@@ -1136,7 +1102,6 @@ $pageTitle = 'My Profile';
                 });
                 $('#btnReconnectGmail').trigger('click');
               });
-              $('#gmailPassword').val('');
             } else {
               const errs = res.data?.errors || {};
               if (errs.gmail_username) setFieldError('gmailUsername', 'errGmailUsername', errs.gmail_username);
