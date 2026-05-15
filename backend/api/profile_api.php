@@ -9,7 +9,7 @@ session_start();
 // 1. Load database config FIRST (defines jsonResponse)
 require_once __DIR__ . '/../config/database.php';
 require_once '../config/api_auth.php'; // ← add
-requireApiKey();  
+requireApiKey();
 
 // 3. Headers
 header('Content-Type: application/json');
@@ -201,10 +201,10 @@ function buildVerificationEmail(string $toName, string $code): array
 HTML;
 
     $plain = "Hi {$toName},\n\n"
-           . "Your password change verification code is: {$code}\n\n"
-           . "This code expires in 10 minutes.\n\n"
-           . "If you did not request a password change, you can safely ignore this email.\n\n"
-           . "— QA System";
+        . "Your password change verification code is: {$code}\n\n"
+        . "This code expires in 10 minutes.\n\n"
+        . "If you did not request a password change, you can safely ignore this email.\n\n"
+        . "— QA System";
 
     return ['html' => $html, 'plain' => $plain];
 }
@@ -214,16 +214,32 @@ HTML;
 // ─────────────────────────────────────────────────────────────────────────────
 function verifyGmail(array $data): void
 {
-    $apiKey      = getenv('SENDGRID_API_KEY');
-    $fromAddress = getenv('MAIL_FROM_ADDRESS');
-
-    if (!$apiKey || !$fromAddress) {
+    $apiKey = getenv('SENDGRID_API_KEY');
+    if (!$apiKey) {
         jsonResponse(false, 'SendGrid is not configured on the server. Please contact the administrator.');
         return;
     }
 
+    $userId = $_SESSION['user_id'] ?? 0;
+    if ($userId <= 0) {
+        jsonResponse(false, 'Invalid session');
+        return;
+    }
+
+    $conn = getDBConnection();
+    $stmt = $conn->prepare("SELECT email FROM qa_users WHERE user_id = ?");
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!$row || empty(trim($row['email'] ?? ''))) {
+        jsonResponse(false, 'No email address found for your account.');
+        return;
+    }
+
     jsonResponse(true, 'Email service is configured and ready.', [
-        'gmail_address' => $fromAddress,
+        'gmail_address' => $row['email'],
     ]);
 }
 
@@ -249,9 +265,9 @@ function getProfile(): void
 
     $user['activity'] = getActivitySummary($userId);
 
-    $gmailConnected          = !empty(getenv('SENDGRID_API_KEY')) && !empty(getenv('MAIL_FROM_ADDRESS'));
+    $gmailConnected          = !empty(getenv('SENDGRID_API_KEY')) && !empty($user['email']);
     $user['gmail_connected'] = $gmailConnected;
-    $user['gmail_address']   = $gmailConnected ? getenv('MAIL_FROM_ADDRESS') : null;
+    $user['gmail_address']   = $gmailConnected ? $user['email'] : null;
 
     jsonResponse(true, 'Profile loaded', ['data' => $user]);
 }
