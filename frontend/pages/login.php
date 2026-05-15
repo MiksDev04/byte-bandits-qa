@@ -14,9 +14,10 @@ if (!empty($_SESSION['logged_in'])) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="x-api-key" content="<?= htmlspecialchars(getenv('APP_API_KEY'), ENT_QUOTES, 'UTF-8') ?>">
-
+  
   <title>Sign In — QA Management System</title>
-
+  
+  <link rel="shortcut icon" href="../assets/images/byte-bandits-qa.ico" type="image/x-icon">
   <!-- Bootstrap 5 -->
   <link rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
