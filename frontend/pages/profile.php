@@ -281,7 +281,7 @@ $pageTitle = 'My Profile';
       color: var(--text-primary, #1a1a18);
     }
 
-    /* ── Gmail connection card ─────────────────────────────── */
+    /* ── Email connection card ─────────────────────────────── */
     .gmail-status-banner {
       display: flex;
       align-items: center;
@@ -333,22 +333,6 @@ $pageTitle = 'My Profile';
       background: none;
       border: none;
       padding: 0;
-    }
-
-    /* Hint box */
-    .hint-box {
-      background: #f5f4f0;
-      border-left: 3px solid var(--primary, #2d5a3d);
-      border-radius: 0 6px 6px 0;
-      padding: 10px 13px;
-      font-size: .78rem;
-      color: var(--text-secondary, #6b6860);
-      margin-bottom: 16px;
-      line-height: 1.55;
-    }
-
-    .hint-box a {
-      color: var(--primary, #2d5a3d);
     }
 
     @media (max-width: 640px) {
@@ -503,6 +487,7 @@ $pageTitle = 'My Profile';
               </div>
             </div>
           </div>
+
           <div class="col-12 col-lg-6">
             <div class="row g-3">
               <div class="col-12">
@@ -540,7 +525,7 @@ $pageTitle = 'My Profile';
 
         </div>
 
-        <!-- ── Gmail Connection Card ─────────────────────────── -->
+        <!-- ── Email Address Card ─────────────────────────────── -->
         <div class="row g-3 mb-3" id="gmailCard">
           <div class="col-12">
             <div class="card">
@@ -556,9 +541,7 @@ $pageTitle = 'My Profile';
                 <!-- Status banner (rendered by JS) -->
                 <div id="gmailStatusBanner"></div>
 
-
-
-                <!-- Connect / Re-connect form -->
+                <!-- Connect / Update form -->
                 <form id="gmailForm" novalidate style="display:none;">
                   <p style="font-size:.84rem;color:var(--text-secondary,#6b6860);margin:0 0 14px;">
                     <i class="fa-solid fa-circle-info me-1" style="color:var(--primary,#2d5a3d);"></i>
@@ -587,9 +570,6 @@ $pageTitle = 'My Profile';
             </div>
           </div>
         </div>
-
-        <!-- ── Account Details ───────────────────────────────── -->
-
 
       </main>
     </div>
@@ -871,9 +851,7 @@ $pageTitle = 'My Profile';
         $.ajax({
             url: API,
             type: 'GET',
-            data: {
-              action: 'get'
-            },
+            data: { action: 'get' },
             dataType: 'json'
           })
           .done(function(res) {
@@ -897,26 +875,26 @@ $pageTitle = 'My Profile';
         $('#heroEmail').text(u.email);
 
         $('#heroBadges').html(`
-      <span class="badge-hero">
-        <i class="fa-solid fa-shield-halved" style="font-size:.62rem;"></i>
-        ${esc(roleLabel(u.role))}
-      </span>
-      <span class="badge-hero">
-        <i class="fa-solid fa-circle${u.is_active ? '-check' : '-xmark'}" style="font-size:.62rem;"></i>
-        ${u.is_active ? 'Active' : 'Inactive'}
-      </span>
-    `);
+          <span class="badge-hero">
+            <i class="fa-solid fa-shield-halved" style="font-size:.62rem;"></i>
+            ${esc(roleLabel(u.role))}
+          </span>
+          <span class="badge-hero">
+            <i class="fa-solid fa-circle${u.is_active ? '-check' : '-xmark'}" style="font-size:.62rem;"></i>
+            ${u.is_active ? 'Active' : 'Inactive'}
+          </span>
+        `);
 
         $('#heroStats').html(`
-      <div class="hero-stat-box">
-        <div class="stat-n">${esc(act.surveys_created ?? 0)}</div>
-        <div class="stat-lbl">Surveys</div>
-      </div>
-      <div class="hero-stat-box">
-        <div class="stat-n">${esc(act.reports_generated ?? 0)}</div>
-        <div class="stat-lbl">Reports</div>
-      </div>
-    `);
+          <div class="hero-stat-box">
+            <div class="stat-n">${esc(act.surveys_created ?? 0)}</div>
+            <div class="stat-lbl">Surveys</div>
+          </div>
+          <div class="hero-stat-box">
+            <div class="stat-n">${esc(act.reports_generated ?? 0)}</div>
+            <div class="stat-lbl">Reports</div>
+          </div>
+        `);
 
         // ── Form fields ──
         $('#usernameField').val(u.username);
@@ -924,35 +902,30 @@ $pageTitle = 'My Profile';
         $('#roleField').val(roleLabel(u.role));
         $('#btnSaveInfo').prop('disabled', false);
 
-        // ── Email field: always reflects connected Gmail, never editable ──
+        // ── Email field (read-only, sourced from DB) ──
         const emailVal = u.gmail_connected ? u.gmail_address : (u.email || '');
         const $hint = $('#emailFieldHint');
         $('#emailField').val(emailVal || '');
 
         if (u.gmail_connected) {
           $hint.html(`
-        <i class="fa-brands fa-google" style="color:#EA4335;"></i>
-        Synced from connected Gmail.
-        <a href="#gmailCard" id="changeGmailLink">Change account</a>
-      `).show();
-          // Smooth-scroll to Gmail card when link clicked
+            <i class="fa-solid fa-envelope-circle-check" style="color:#27ae60;"></i>
+            Email address on file.
+            <a href="#gmailCard" id="changeGmailLink">Change email</a>
+          `).show();
           $hint.find('#changeGmailLink').on('click', function(e) {
             e.preventDefault();
-            document.getElementById('gmailCard').scrollIntoView({
-              behavior: 'smooth'
-            });
+            document.getElementById('gmailCard').scrollIntoView({ behavior: 'smooth' });
             $('#btnReconnectGmail').trigger('click');
           });
         } else {
           $hint.html(`
-        <i class="fa-solid fa-triangle-exclamation" style="color:#e67e22;"></i>
-        No Gmail connected. <a href="#gmailCard" id="connectGmailLink">Connect a Gmail account</a> to set your email.
-      `).show();
+            <i class="fa-solid fa-triangle-exclamation" style="color:#e67e22;"></i>
+            No email set. <a href="#gmailCard" id="connectGmailLink">Add an email address</a> to enable password resets.
+          `).show();
           $hint.find('#connectGmailLink').on('click', function(e) {
             e.preventDefault();
-            document.getElementById('gmailCard').scrollIntoView({
-              behavior: 'smooth'
-            });
+            document.getElementById('gmailCard').scrollIntoView({ behavior: 'smooth' });
           });
         }
 
@@ -962,70 +935,70 @@ $pageTitle = 'My Profile';
           '<span class="badge-qa cancelled"><i class="fa-solid fa-xmark me-1"></i>Inactive</span>';
 
         $('#metaList').html(`
-      <li>
-        <span class="meta-key">
-          <i class="fa-solid fa-fingerprint me-2" style="color:var(--text-muted,#aaa);"></i>User ID
-        </span>
-        <span class="meta-val">#${esc(u.user_id)}</span>
-      </li>
-      <li>
-        <span class="meta-key">
-          <i class="fa-solid fa-circle-check me-2" style="color:var(--text-muted,#aaa);"></i>Account Status
-        </span>
-        <span class="meta-val">${statusBadge}</span>
-      </li>
-      <li>
-        <span class="meta-key">
-          <i class="fa-regular fa-calendar me-2" style="color:var(--text-muted,#aaa);"></i>Member Since
-        </span>
-        <span class="meta-val">${formatDate(u.created_at)}</span>
-      </li>
-      <li>
-        <span class="meta-key">
-          <i class="fa-solid fa-paper-plane me-2" style="color:var(--text-muted,#aaa);"></i>Surveys Created
-        </span>
-        <span class="meta-val">${esc(act.surveys_created ?? 0)}</span>
-      </li>
-      <li>
-        <span class="meta-key">
-          <i class="fa-solid fa-file-lines me-2" style="color:var(--text-muted,#aaa);"></i>Reports Generated
-        </span>
-        <span class="meta-val">${esc(act.reports_generated ?? 0)}</span>
-      </li>
-    `);
+          <li>
+            <span class="meta-key">
+              <i class="fa-solid fa-fingerprint me-2" style="color:var(--text-muted,#aaa);"></i>User ID
+            </span>
+            <span class="meta-val">#${esc(u.user_id)}</span>
+          </li>
+          <li>
+            <span class="meta-key">
+              <i class="fa-solid fa-circle-check me-2" style="color:var(--text-muted,#aaa);"></i>Account Status
+            </span>
+            <span class="meta-val">${statusBadge}</span>
+          </li>
+          <li>
+            <span class="meta-key">
+              <i class="fa-regular fa-calendar me-2" style="color:var(--text-muted,#aaa);"></i>Member Since
+            </span>
+            <span class="meta-val">${formatDate(u.created_at)}</span>
+          </li>
+          <li>
+            <span class="meta-key">
+              <i class="fa-solid fa-paper-plane me-2" style="color:var(--text-muted,#aaa);"></i>Surveys Created
+            </span>
+            <span class="meta-val">${esc(act.surveys_created ?? 0)}</span>
+          </li>
+          <li>
+            <span class="meta-key">
+              <i class="fa-solid fa-file-lines me-2" style="color:var(--text-muted,#aaa);"></i>Reports Generated
+            </span>
+            <span class="meta-val">${esc(act.reports_generated ?? 0)}</span>
+          </li>
+        `);
 
-        // ── Gmail status ──
+        // ── Email status banner ──
         renderGmailStatus(u.gmail_connected, u.gmail_address);
       }
 
-      /* ── Gmail status banner ────────────────────────────────── */
+      /* ── Email status banner ────────────────────────────────── */
       function renderGmailStatus(connected, address) {
         if (connected) {
           $('#gmailStatusBanner').html(`
-        <div class="gmail-status-banner connected">
-          <span class="gmail-status-icon"><i class="fa-brands fa-google"></i></span>
-          <div class="gmail-status-text">
-            <strong>Gmail connected</strong>
-            <small>${esc(address)} — notifications &amp; password reset emails are active</small>
-          </div>
-          <button type="button" class="gmail-toggle-link" id="btnReconnectGmail">
-            Change account
-          </button>
-        </div>
-      `);
+            <div class="gmail-status-banner connected">
+              <span class="gmail-status-icon"><i class="fa-solid fa-envelope-circle-check"></i></span>
+              <div class="gmail-status-text">
+                <strong>Email address set</strong>
+                <small>${esc(address)} — password reset codes and notifications will be sent here</small>
+              </div>
+              <button type="button" class="gmail-toggle-link" id="btnReconnectGmail">
+                Change email
+              </button>
+            </div>
+          `);
           $('#gmailForm').hide();
           $('#gmailUsername').val(address);
           bindReconnect();
         } else {
           $('#gmailStatusBanner').html(`
-        <div class="gmail-status-banner disconnected">
-          <span class="gmail-status-icon"><i class="fa-regular fa-envelope"></i></span>
-          <div class="gmail-status-text">
-            <strong>No Gmail connected</strong>
-            <small>Connect a Gmail account to enable email notifications and password resets.</small>
-          </div>
-        </div>
-      `);
+            <div class="gmail-status-banner disconnected">
+              <span class="gmail-status-icon"><i class="fa-regular fa-envelope"></i></span>
+              <div class="gmail-status-text">
+                <strong>No email address set</strong>
+                <small>Add a real email address to receive password reset codes and system notifications.</small>
+              </div>
+            </div>
+          `);
           $('#gmailForm').show();
           $('#btnCancelGmail').hide();
         }
@@ -1039,7 +1012,7 @@ $pageTitle = 'My Profile';
         });
       }
 
-      /* ── Cancel reconnect ───────────────────────────────────── */
+      /* ── Cancel email update ────────────────────────────────── */
       $('#btnCancelGmail').on('click', function() {
         $('#gmailForm').slideUp(160);
         bindReconnect();
@@ -1047,29 +1020,17 @@ $pageTitle = 'My Profile';
         $(this).hide();
       });
 
-      /* ── Toggle app-password visibility ────────────────────── */
-      $('#toggleAppPass').on('click', function() {
-        const $input = $('#gmailPassword');
-        const $icon = $('#appPassEyeIcon');
-        if ($input.attr('type') === 'password') {
-          $input.attr('type', 'text');
-          $icon.removeClass('fa-eye').addClass('fa-eye-slash');
-        } else {
-          $input.attr('type', 'password');
-          $icon.removeClass('fa-eye-slash').addClass('fa-eye');
-        }
-      });
-
-      /* ── Connect Gmail form ─────────────────────────────────── */
+      /* ── Save email form ────────────────────────────────────── */
       $('#gmailForm').on('submit', function(e) {
         e.preventDefault();
+
+        // Clear only the email field error
         clearErrors([
           ['gmailUsername', 'errGmailUsername'],
-          ['gmailPassword', 'errGmailPassword'],
         ]);
 
         const btn = document.getElementById('btnConnectGmail');
-        btnLoading(btn, 'Verifying…');
+        btnLoading(btn, 'Saving…');
 
         $.ajax({
             url: API,
@@ -1079,42 +1040,39 @@ $pageTitle = 'My Profile';
             data: JSON.stringify({
               action: 'verify_gmail',
               gmail_username: $('#gmailUsername').val().trim(),
-              gmail_password: $('#gmailPassword').val().trim(),
-              gmail_from_name: $('#gmailFromName').val().trim() || 'QA System',
             })
           })
           .done(function(res) {
             if (res.success) {
-              toast.success(res.message || 'Gmail connected successfully!', 'Connected');
               const newAddress = res.data?.gmail_address || $('#gmailUsername').val().trim();
+              toast.success(res.message || 'Email address saved successfully!', 'Saved');
+
+              // Update the status banner and hide the form
               renderGmailStatus(true, newAddress);
-              // Sync the email field in Personal Information to the new Gmail address
+
+              // Sync the read-only email field in Personal Information
               $('#emailField').val(newAddress);
               $('#emailFieldHint').html(`
-          <i class="fa-brands fa-google" style="color:#EA4335;"></i>
-          Synced from connected Gmail.
-          <a href="#gmailCard" id="changeGmailLink">Change account</a>
-        `).show();
+                <i class="fa-solid fa-envelope-circle-check" style="color:#27ae60;"></i>
+                Email address on file.
+                <a href="#gmailCard" id="changeGmailLink">Change email</a>
+              `).show();
               $('#emailFieldHint #changeGmailLink').on('click', function(e) {
                 e.preventDefault();
-                document.getElementById('gmailCard').scrollIntoView({
-                  behavior: 'smooth'
-                });
+                document.getElementById('gmailCard').scrollIntoView({ behavior: 'smooth' });
                 $('#btnReconnectGmail').trigger('click');
               });
             } else {
               const errs = res.data?.errors || {};
-              if (errs.gmail_username) setFieldError('gmailUsername', 'errGmailUsername', errs.gmail_username);
-              if (errs.gmail_password) setFieldError('gmailPassword', 'errGmailPassword', errs.gmail_password);
-              if (!errs.gmail_username && !errs.gmail_password)
-                toast.error(res.message || 'Gmail connection failed.');
+              if (errs.gmail_username) {
+                setFieldError('gmailUsername', 'errGmailUsername', errs.gmail_username);
+              } else {
+                toast.error(res.message || 'Failed to save email. Please try again.');
+              }
             }
           })
           .fail(function() {
             toast.error('Network error. Please try again.');
-            // In profile.php, temporarily log the API path
-            console.log('API path:', API);
-            // Should be: https://byte-bandits-qa.onrender.com/backend/api/profile_api.php
           })
           .always(function() {
             btnReset(btn);
@@ -1139,7 +1097,7 @@ $pageTitle = 'My Profile';
             data: JSON.stringify({
               action: 'update_info',
               full_name: $('#fullName').val().trim(),
-              email: $('#emailField').val().trim(), // read-only but still sent for DB consistency
+              email: $('#emailField').val().trim(),
             })
           })
           .done(function(res) {
@@ -1169,37 +1127,15 @@ $pageTitle = 'My Profile';
         if (/[0-9]/.test(val)) score++;
         if (/[^A-Za-z0-9]/.test(val)) score++;
 
-        const map = [{
-            w: '0%',
-            bg: 'transparent',
-            lbl: ''
-          },
-          {
-            w: '25%',
-            bg: '#c0392b',
-            lbl: 'Weak'
-          },
-          {
-            w: '50%',
-            bg: '#e67e22',
-            lbl: 'Fair'
-          },
-          {
-            w: '75%',
-            bg: '#f1c40f',
-            lbl: 'Good'
-          },
-          {
-            w: '100%',
-            bg: '#27ae60',
-            lbl: 'Strong'
-          },
+        const map = [
+          { w: '0%',   bg: 'transparent', lbl: '' },
+          { w: '25%',  bg: '#c0392b',     lbl: 'Weak' },
+          { w: '50%',  bg: '#e67e22',     lbl: 'Fair' },
+          { w: '75%',  bg: '#f1c40f',     lbl: 'Good' },
+          { w: '100%', bg: '#27ae60',     lbl: 'Strong' },
         ];
         const m = map[score];
-        $('#strengthFill').css({
-          width: m.w,
-          background: m.bg
-        });
+        $('#strengthFill').css({ width: m.w, background: m.bg });
         $('#strengthText').text(m.lbl);
       });
 
@@ -1220,12 +1156,12 @@ $pageTitle = 'My Profile';
       /* ══════════════════════════════════════════════════════════
          STEP 1 — Open confirmation modal
       ══════════════════════════════════════════════════════════ */
-      let _verifiedEmail = ''; // store email across modals
+      let _verifiedEmail = '';
 
       $('#btnOpenChangePwd').on('click', function() {
         const email = $('#emailField').val().trim();
         if (!email) {
-          toast.error('Profile is still loading. Please wait a moment.');
+          toast.error('Please set an email address first before changing your password.');
           return;
         }
         _verifiedEmail = email;
@@ -1247,13 +1183,10 @@ $pageTitle = 'My Profile';
             type: 'POST',
             contentType: 'application/json',
             dataType: 'json',
-            data: JSON.stringify({
-              action: 'send_verification_code'
-            })
+            data: JSON.stringify({ action: 'send_verification_code' })
           })
           .done(function(res) {
             if (res.success) {
-              // Close confirm modal, open enter-code modal
               bootstrap.Modal.getInstance(document.getElementById('modalConfirmCode')).hide();
               const email = res.data?.email || _verifiedEmail;
               _verifiedEmail = email;
@@ -1271,17 +1204,11 @@ $pageTitle = 'My Profile';
       });
 
       function openEnterCodeModal(email) {
-        // Reset OTP boxes
         $('#otpBoxRow .otp-digit').val('').removeClass('is-invalid');
         $('#errOtpCode').text('').removeClass('show');
         $('#enterCodeEmail').text(email);
-
-        // Start resend cooldown (30 s)
         startResendCooldown(30);
-
         new bootstrap.Modal(document.getElementById('modalEnterCode')).show();
-
-        // Auto-focus first box once shown
         document.getElementById('modalEnterCode').addEventListener('shown.bs.modal', function focusFirst() {
           document.querySelectorAll('.otp-digit')[0]?.focus();
           this.removeEventListener('shown.bs.modal', focusFirst);
@@ -1302,19 +1229,15 @@ $pageTitle = 'My Profile';
           this.previousElementSibling && this.previousElementSibling.classList.contains('otp-digit')) {
           this.previousElementSibling.focus();
         }
-        // Allow paste on first box
         if ((e.ctrlKey || e.metaKey) && e.key === 'v') return;
       });
 
-      // Handle paste into any OTP box
       $(document).on('paste', '.otp-digit', function(e) {
         e.preventDefault();
         const pasted = (e.originalEvent.clipboardData || window.clipboardData)
           .getData('text').replace(/\D/g, '').slice(0, 6);
         const boxes = document.querySelectorAll('.otp-digit');
-        pasted.split('').forEach((ch, i) => {
-          if (boxes[i]) boxes[i].value = ch;
-        });
+        pasted.split('').forEach((ch, i) => { if (boxes[i]) boxes[i].value = ch; });
         if (pasted.length >= 6 && boxes[5]) boxes[5].focus();
       });
 
@@ -1344,9 +1267,7 @@ $pageTitle = 'My Profile';
             type: 'POST',
             contentType: 'application/json',
             dataType: 'json',
-            data: JSON.stringify({
-              action: 'send_verification_code'
-            })
+            data: JSON.stringify({ action: 'send_verification_code' })
           })
           .done(function(res) {
             if (res.success) {
@@ -1358,12 +1279,8 @@ $pageTitle = 'My Profile';
               toast.error(res.message || 'Could not resend code.');
             }
           })
-          .fail(function() {
-            toast.error('Network error.');
-          })
-          .always(function() {
-            btnReset(btn);
-          });
+          .fail(function() { toast.error('Network error.'); })
+          .always(function() { btnReset(btn); });
       });
 
       /* ── Cancel enter-code modal ────────────────────────────── */
@@ -1394,20 +1311,14 @@ $pageTitle = 'My Profile';
             type: 'POST',
             contentType: 'application/json',
             dataType: 'json',
-            data: JSON.stringify({
-              action: 'verify_code',
-              code: code
-            })
+            data: JSON.stringify({ action: 'verify_code', code: code })
           })
           .done(function(res) {
             if (res.success) {
               clearInterval(_resendTimer);
               bootstrap.Modal.getInstance(document.getElementById('modalEnterCode')).hide();
-              // Reset password form then open it
               $('#pwdForm')[0].reset();
-              $('#strengthFill').css({
-                width: '0%'
-              });
+              $('#strengthFill').css({ width: '0%' });
               $('#strengthText').text('');
               clearErrors([
                 ['currentPwd', 'errCurrentPwd'],
@@ -1418,17 +1329,12 @@ $pageTitle = 'My Profile';
             } else {
               const msg = res.data?.errors?.code || res.message || 'Incorrect code.';
               $('#errOtpCode').text(msg).addClass('show');
-              // Shake the boxes
               $('#otpBoxRow').addClass('otp-shake');
               setTimeout(() => $('#otpBoxRow').removeClass('otp-shake'), 500);
             }
           })
-          .fail(function() {
-            toast.error('Network error.');
-          })
-          .always(function() {
-            btnReset(btn);
-          });
+          .fail(function() { toast.error('Network error.'); })
+          .always(function() { btnReset(btn); });
       });
 
       /* ══════════════════════════════════════════════════════════
@@ -1466,9 +1372,7 @@ $pageTitle = 'My Profile';
               bootstrap.Modal.getInstance(document.getElementById('modalChangePassword')).hide();
               toast.success('Password changed successfully.', 'Updated');
               $('#pwdForm')[0].reset();
-              $('#strengthFill').css({
-                width: '0%'
-              });
+              $('#strengthFill').css({ width: '0%' });
               $('#strengthText').text('');
             } else {
               const errs = res.data?.errors || {};
@@ -1478,12 +1382,8 @@ $pageTitle = 'My Profile';
               if (!Object.keys(errs).length) toast.error(res.message || 'Password change failed.');
             }
           })
-          .fail(function() {
-            toast.error('Network error. Please try again.');
-          })
-          .always(function() {
-            btnReset(btn);
-          });
+          .fail(function() { toast.error('Network error. Please try again.'); })
+          .always(function() { btnReset(btn); });
       });
 
       /* ── Init ───────────────────────────────────────────────── */
