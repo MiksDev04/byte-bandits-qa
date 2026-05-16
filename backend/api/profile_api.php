@@ -56,8 +56,10 @@ try {
                 sendVerificationCode();
             } elseif ($postAction === 'verify_code') {
                 verifyPasswordCode($data);
-            } elseif ($postAction === 'verify_gmail') {
-                verifyGmail($data);
+            } elseif ($postAction === 'send_email_change_code') {
+                sendEmailChangeCode($data);
+            } elseif ($postAction === 'verify_email_change_code') {
+                verifyEmailChangeCode($data);
             } else {
                 jsonResponse(false, 'Invalid action');
             }
@@ -147,7 +149,7 @@ function sendEmailViaSendGrid(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Build the styled HTML email
+// Build the styled HTML email — password change
 // ─────────────────────────────────────────────────────────────────────────────
 function buildVerificationEmail(string $toName, string $code): array
 {
@@ -205,39 +207,100 @@ HTML;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// verifyGmail — validates the new email, saves it to the database
+// Build the styled HTML email — email address change
 // ─────────────────────────────────────────────────────────────────────────────
-function verifyGmail(array $data): void
+function buildEmailChangeVerificationEmail(string $toName, string $code, string $newEmail): array
 {
-    $apiKey = getenv('SENDGRID_API_KEY');
-    if (!$apiKey) {
-        jsonResponse(false, 'SendGrid is not configured on the server. Please contact the administrator.');
-        return;
-    }
+    $year       = date('Y');
+    $safeNew    = htmlspecialchars($newEmail, ENT_QUOTES, 'UTF-8');
 
+    $html = <<<HTML
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#e8f5fe;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#e8f5fe;padding:40px 0;">
+    <tr><td align="center">
+      <table width="480" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(30,136,229,.10);">
+        <tr>
+          <td style="background:linear-gradient(135deg,#1e88e5,#42a5f5);padding:32px 40px;text-align:center;">
+            <div style="font-size:2rem;margin-bottom:8px;">✉️</div>
+            <h1 style="color:#fff;margin:0;font-size:1.2rem;font-weight:700;">Email Address Change</h1>
+            <p style="color:rgba(255,255,255,.85);margin:6px 0 0;font-size:.83rem;">QA Management System</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px 40px;">
+            <p style="color:#374151;margin:0 0 14px;font-size:.95rem;">Hi <strong>{$toName}</strong>,</p>
+            <p style="color:#374151;margin:0 0 14px;font-size:.9rem;line-height:1.6;">
+              A request was made to change your account's email address to:
+            </p>
+            <p style="background:#f0f7ff;border:1px solid #90caf9;border-radius:8px;padding:10px 16px;
+                      font-size:.92rem;font-weight:700;color:#1565c0;margin:0 0 20px;word-break:break-all;">
+              {$safeNew}
+            </p>
+            <p style="color:#374151;margin:0 0 24px;font-size:.9rem;line-height:1.6;">
+              Enter the verification code below to confirm this change.
+              This code is valid for <strong>10 minutes</strong>.
+            </p>
+            <div style="background:#e8f5fe;border:2px solid #90caf9;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
+              <p style="color:#6b7280;margin:0 0 8px;font-size:.75rem;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Your Verification Code</p>
+              <div style="font-size:2.4rem;font-weight:800;letter-spacing:12px;color:#1e88e5;font-family:'Courier New',monospace;">{$code}</div>
+            </div>
+            <p style="color:#6b7280;font-size:.82rem;margin:0 0 6px;">If you did not request an email change, please ignore this message — your account remains safe.</p>
+            <p style="color:#6b7280;font-size:.82rem;margin:0;"><strong>Never share this code</strong> with anyone.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="background:#f9fafb;border-top:1px solid #f3f4f6;padding:14px 40px;text-align:center;">
+            <p style="color:#9ca3af;font-size:.73rem;margin:0;">&copy; {$year} Quality Assurance Management System &bull; All rights reserved</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+HTML;
+
+    $plain = "Hi {$toName},\n\n"
+        . "A request was made to change your account email address to: {$newEmail}\n\n"
+        . "Your verification code is: {$code}\n\n"
+        . "This code expires in 10 minutes.\n\n"
+        . "If you did not request this change, you can safely ignore this email.\n\n"
+        . "— QA System";
+
+    return ['html' => $html, 'plain' => $plain];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 1 — Validate new email, send OTP to OLD email
+// ─────────────────────────────────────────────────────────────────────────────
+function sendEmailChangeCode(array $data): void
+{
     $userId = $_SESSION['user_id'] ?? 0;
     if ($userId <= 0) {
         jsonResponse(false, 'Invalid session');
         return;
     }
 
-    // Validate the submitted email
-    $newEmail = trim($data['gmail_username'] ?? '');
+    // Validate new email
+    $newEmail = trim($data['new_email'] ?? '');
     if (!$newEmail || !filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
         jsonResponse(false, 'Validation failed', ['errors' => ['gmail_username' => 'Please enter a valid email address.']]);
         return;
     }
-    // ── NEW: verify the domain actually has mail servers ──────────────
+
+    // Domain MX check
     $domain = substr(strrchr($newEmail, '@'), 1);
     if (!checkdnsrr($domain, 'MX') && !checkdnsrr($domain, 'A')) {
         jsonResponse(false, 'The domain "' . $domain . '" doesn\'t appear to exist. Please use a real email address.', ['warn' => true]);
         return;
     }
-    // ──
 
     $conn = getDBConnection();
 
-    // Check if email is already used by another account
+    // Check uniqueness (new email not already taken by another user)
     $stmt = $conn->prepare("SELECT user_id FROM qa_users WHERE email = ? AND user_id != ?");
     $stmt->bind_param('si', $newEmail, $userId);
     $stmt->execute();
@@ -248,7 +311,172 @@ function verifyGmail(array $data): void
     }
     $stmt->close();
 
-    // Save the new email to the database
+    // Fetch current email and name
+    $stmt = $conn->prepare("SELECT full_name, email FROM qa_users WHERE user_id = ?");
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    $currentEmail = trim($row['email'] ?? '');
+
+    // ── No existing email: first-time setup — save directly, no OTP needed ──
+    if (!$currentEmail) {
+        $stmt = $conn->prepare("UPDATE qa_users SET email = ? WHERE user_id = ?");
+        $stmt->bind_param('si', $newEmail, $userId);
+        if (!$stmt->execute()) {
+            $stmt->close();
+            jsonResponse(false, 'Failed to save email address. Please try again.');
+            return;
+        }
+        $stmt->close();
+        $_SESSION['email'] = $newEmail;
+        jsonResponse(true, 'Email address saved successfully.', [
+            'direct'        => true,
+            'gmail_address' => $newEmail,
+        ]);
+        return;
+    }
+
+    // ── Existing email: require OTP ──
+    if (!getenv('SENDGRID_API_KEY')) {
+        jsonResponse(false, 'Mail server is not configured on the server. Please contact the administrator.');
+        return;
+    }
+
+    $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    $salt = bin2hex(random_bytes(16));
+
+    // Store OTP + pending new address in session
+    $_SESSION['email_change_code']     = hash('sha256', $salt . $code);
+    $_SESSION['email_change_salt']     = $salt;
+    $_SESSION['email_change_expires']  = time() + 600;
+    $_SESSION['email_change_attempts'] = 0;
+    $_SESSION['email_change_new']      = $newEmail; // committed only after OTP passes
+
+    $toName  = $row['full_name'] ?: 'User';
+    $toEmail = $currentEmail; // ← sent to the OLD address
+
+    ['html' => $htmlBody, 'plain' => $plainBody] = buildEmailChangeVerificationEmail($toName, $code, $newEmail);
+
+    $sent = sendEmailViaSendGrid(
+        $toEmail,
+        $toName,
+        'Email Address Change Verification — QA Management System',
+        $htmlBody,
+        $plainBody
+    );
+
+    if (!$sent) {
+        jsonResponse(false, 'Failed to send verification email. Please try again later.');
+        return;
+    }
+
+    // Mask the old email address for the response (e.g. us****@gmail.com)
+    $masked = maskEmail($currentEmail);
+
+    jsonResponse(true, 'Verification code sent.', [
+        'data' => [
+            'sent_to' => $masked,   // shown in UI ("code sent to us****@gmail.com")
+        ],
+    ]);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 2 — Verify OTP and commit the new email address
+// ─────────────────────────────────────────────────────────────────────────────
+function verifyEmailChangeCode(array $data): void
+{
+    $userId = $_SESSION['user_id'] ?? 0;
+    if ($userId <= 0) {
+        jsonResponse(false, 'Invalid session');
+        return;
+    }
+
+    $code = trim($data['code'] ?? '');
+
+    if (
+        empty($_SESSION['email_change_code']) ||
+        empty($_SESSION['email_change_expires']) ||
+        empty($_SESSION['email_change_salt'])
+    ) {
+        jsonResponse(false, 'No pending verification. Please request a new code.', [
+            'errors' => ['code' => 'Request a new verification code.'],
+        ]);
+        return;
+    }
+
+    if (time() > $_SESSION['email_change_expires']) {
+        unset(
+            $_SESSION['email_change_code'],
+            $_SESSION['email_change_salt'],
+            $_SESSION['email_change_expires'],
+            $_SESSION['email_change_attempts'],
+            $_SESSION['email_change_new']
+        );
+        jsonResponse(false, 'Verification code has expired. Please request a new one.', [
+            'errors' => ['code' => 'Code expired. Request a new one.'],
+        ]);
+        return;
+    }
+
+    $_SESSION['email_change_attempts'] = ($_SESSION['email_change_attempts'] ?? 0) + 1;
+    if ($_SESSION['email_change_attempts'] > 5) {
+        unset(
+            $_SESSION['email_change_code'],
+            $_SESSION['email_change_salt'],
+            $_SESSION['email_change_expires'],
+            $_SESSION['email_change_attempts'],
+            $_SESSION['email_change_new']
+        );
+        jsonResponse(false, 'Too many failed attempts. Please request a new code.', [
+            'errors' => ['code' => 'Too many attempts. Request a new code.'],
+        ]);
+        return;
+    }
+
+    $salt         = $_SESSION['email_change_salt'];
+    $expectedHash = hash('sha256', $salt . $code);
+
+    if (!hash_equals($expectedHash, $_SESSION['email_change_code'])) {
+        $left = max(0, 5 - $_SESSION['email_change_attempts']);
+        jsonResponse(
+            false,
+            'Incorrect code.' . ($left > 0 ? " {$left} attempt(s) remaining." : ''),
+            ['errors' => ['code' => 'Incorrect verification code.']]
+        );
+        return;
+    }
+
+    // OTP is correct — retrieve stashed new address
+    $newEmail = $_SESSION['email_change_new'] ?? '';
+    unset(
+        $_SESSION['email_change_code'],
+        $_SESSION['email_change_salt'],
+        $_SESSION['email_change_expires'],
+        $_SESSION['email_change_attempts'],
+        $_SESSION['email_change_new']
+    );
+
+    if (!$newEmail) {
+        jsonResponse(false, 'Session expired. Please start the process again.');
+        return;
+    }
+
+    $conn = getDBConnection();
+
+    // Final uniqueness check (another user might have claimed it during the OTP window)
+    $stmt = $conn->prepare("SELECT user_id FROM qa_users WHERE email = ? AND user_id != ?");
+    $stmt->bind_param('si', $newEmail, $userId);
+    $stmt->execute();
+    if ($stmt->get_result()->num_rows > 0) {
+        $stmt->close();
+        jsonResponse(false, 'This email address was claimed by another account while you were verifying. Please try a different address.');
+        return;
+    }
+    $stmt->close();
+
+    // Commit
     $stmt = $conn->prepare("UPDATE qa_users SET email = ? WHERE user_id = ?");
     $stmt->bind_param('si', $newEmail, $userId);
     if (!$stmt->execute()) {
@@ -258,12 +486,21 @@ function verifyGmail(array $data): void
     }
     $stmt->close();
 
-    // Keep session in sync
     $_SESSION['email'] = $newEmail;
 
-    jsonResponse(true, 'Email updated successfully.', [
+    jsonResponse(true, 'Email address updated successfully.', [
         'gmail_address' => $newEmail,
     ]);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: mask an email address for display  e.g. user@gmail.com → us**@gmail.com
+// ─────────────────────────────────────────────────────────────────────────────
+function maskEmail(string $email): string
+{
+    [$local, $domain] = explode('@', $email, 2);
+    $visible = min(2, strlen($local));
+    return substr($local, 0, $visible) . str_repeat('*', max(0, strlen($local) - $visible)) . '@' . $domain;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -380,7 +617,6 @@ function changePassword(array $data): void
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-
     if (!$row) {
         jsonResponse(false, 'User not found', [], 404);
     }
@@ -428,9 +664,6 @@ function sendVerificationCode(): void
 
     $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-    // Use SHA-256 + a random salt instead of bcrypt — OTPs don't need bcrypt's
-    // intentional slowness; the 5-attempt limit + 10-minute expiry handle brute-force.
-    // This removes 200–500 ms of unnecessary delay before the email is sent.
     $salt = bin2hex(random_bytes(16));
     $_SESSION['pwd_verify_code']     = hash('sha256', $salt . $code);
     $_SESSION['pwd_verify_salt']     = $salt;
@@ -498,7 +731,6 @@ function verifyPasswordCode(array $data): void
         return;
     }
 
-    // Constant-time comparison using SHA-256 + stored salt
     $salt         = $_SESSION['pwd_verify_salt'];
     $expectedHash = hash('sha256', $salt . $code);
 

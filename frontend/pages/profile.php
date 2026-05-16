@@ -375,7 +375,8 @@ $pageTitle = 'My Profile';
       }
     }
 
-    #otpBoxRow.otp-shake {
+    #otpBoxRow.otp-shake,
+    #emailOtpBoxRow.otp-shake {
       animation: otpShake .45s ease;
     }
   </style>
@@ -558,7 +559,7 @@ $pageTitle = 'My Profile';
 
                   <div class="d-flex align-items-center gap-2 mt-3 flex-wrap">
                     <button type="submit" class="btn-primary-qa" id="btnConnectGmail">
-                      <i class="fa-solid fa-floppy-disk me-1"></i> Save Email
+                      <i class="fa-solid fa-paper-plane me-1"></i> Send Verification Code
                     </button>
                     <button type="button" class="gmail-toggle-link" id="btnCancelGmail" style="display:none;">
                       Cancel
@@ -576,7 +577,7 @@ $pageTitle = 'My Profile';
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════
-     MODAL 1 — Confirm: send verification code
+     MODAL 1 — Confirm: send verification code (password change)
 ═══════════════════════════════════════════════════════════════ -->
   <div class="modal fade" id="modalConfirmCode" tabindex="-1" aria-labelledby="modalConfirmCodeLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width:430px;">
@@ -628,7 +629,7 @@ $pageTitle = 'My Profile';
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════
-     MODAL 2 — Enter verification code
+     MODAL 2 — Enter verification code (password change)
 ═══════════════════════════════════════════════════════════════ -->
   <div class="modal fade" id="modalEnterCode" tabindex="-1" aria-labelledby="modalEnterCodeLabel"
     aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -792,6 +793,88 @@ $pageTitle = 'My Profile';
     </div>
   </div>
 
+  <!-- ═══════════════════════════════════════════════════════════════
+     MODAL 4 — Email change OTP (sent to the OLD email address)
+═══════════════════════════════════════════════════════════════ -->
+  <div class="modal fade" id="modalEmailChangeOtp" tabindex="-1" aria-labelledby="modalEmailChangeOtpLabel"
+    aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+      <div class="modal-content" style="border-radius:12px;border:none;box-shadow:0 8px 32px rgba(0,0,0,.14);">
+
+        <div class="modal-header" style="border-bottom:1px solid var(--border-light,#f0ede6);padding:20px 24px 16px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="width:34px;height:34px;border-radius:50%;background:rgba(30,136,229,.1);
+                       display:flex;align-items:center;justify-content:center;">
+              <i class="fa-solid fa-envelope-circle-check" style="color:#1e88e5;font-size:.9rem;"></i>
+            </span>
+            <h5 class="modal-title mb-0" id="modalEmailChangeOtpLabel"
+              style="font-size:.97rem;font-weight:700;letter-spacing:-.3px;">
+              Verify Email Change
+            </h5>
+          </div>
+        </div>
+
+        <div class="modal-body" style="padding:22px 24px;">
+
+          <!-- Info notice about where the code went -->
+          <div style="background:#e8f5fe;border:1px solid #90caf9;border-radius:8px;
+                      padding:12px 14px;margin-bottom:18px;font-size:.83rem;color:#1565c0;">
+            <i class="fa-solid fa-circle-info me-1"></i>
+            A 6-digit code was sent to your <strong>current</strong> email address
+            (<span id="emailOtpSentTo" style="font-weight:700;">—</span>).
+            Enter it below to confirm the change.
+          </div>
+
+          <!-- New address being set (confirmation) -->
+          <p style="font-size:.82rem;color:var(--text-secondary,#6b6860);margin:0 0 14px;">
+            New address:
+            <strong id="emailOtpNewAddr" style="color:var(--text-primary,#1a1a18);word-break:break-all;">—</strong>
+          </p>
+
+          <!-- OTP boxes -->
+          <div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px;" id="emailOtpBoxRow">
+            <?php for ($i = 0; $i < 6; $i++): ?>
+              <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]"
+                class="email-otp-digit form-control-qa"
+                style="width:42px;height:48px;text-align:center;font-size:1.25rem;
+                        font-weight:700;padding:0;border-radius:8px;">
+            <?php endfor; ?>
+          </div>
+
+          <div class="invalid-feedback-qa" id="errEmailOtpCode"
+            style="text-align:center;font-size:.77rem;"></div>
+
+          <p style="font-size:.76rem;color:var(--text-secondary,#6b6860);margin:14px 0 0;text-align:center;">
+            Didn't receive it?
+            <button type="button" id="btnResendEmailCode"
+              style="background:none;border:none;padding:0;font-size:.76rem;
+                         color:var(--primary,#2d5a3d);text-decoration:underline;cursor:pointer;">
+              Resend code
+            </button>
+            <span id="emailResendCountdown"
+              style="font-size:.76rem;color:var(--text-secondary,#6b6860);display:none;"></span>
+          </p>
+        </div>
+
+        <div class="modal-footer" style="border-top:1px solid var(--border-light,#f0ede6);
+                                       padding:14px 24px;gap:8px;">
+          <button type="button" id="btnCancelEmailOtp"
+            style="padding:7px 18px;border-radius:7px;font-size:.84rem;font-weight:600;
+                       border:1.5px solid var(--border,#e2ddd4);background:#fff;
+                       color:var(--text-secondary,#6b6860);cursor:pointer;">
+            <i class="fa-solid fa-xmark me-1"></i> Cancel
+          </button>
+          <button type="button" id="btnVerifyEmailOtp"
+            style="padding:7px 20px;border-radius:7px;font-size:.84rem;font-weight:600;
+                       background:#1e88e5;color:#fff;border:none;cursor:pointer;">
+            <i class="fa-solid fa-shield-check me-1"></i> Confirm Change
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- Toast container (app.js expects this id) -->
   <div id="toast-container"></div>
 
@@ -846,26 +929,44 @@ $pageTitle = 'My Profile';
         pairs.forEach(([f, e]) => setFieldError(f, e, ''));
       }
 
+      /* ── OTP box wiring (shared) ────────────────────────────── */
+      function wireOtpBoxes(selector) {
+        $(document).on('input', selector, function() {
+          this.value = this.value.replace(/\D/, '');
+          if (this.value && this.nextElementSibling?.classList.contains(selector.replace('.', ''))) {
+            this.nextElementSibling.focus();
+          }
+        });
+
+        $(document).on('keydown', selector, function(e) {
+          if (e.key === 'Backspace' && !this.value &&
+            this.previousElementSibling?.classList.contains(selector.replace('.', ''))) {
+            this.previousElementSibling.focus();
+          }
+          if ((e.ctrlKey || e.metaKey) && e.key === 'v') return;
+        });
+
+        $(document).on('paste', selector, function(e) {
+          e.preventDefault();
+          const pasted = (e.originalEvent.clipboardData || window.clipboardData)
+            .getData('text').replace(/\D/g, '').slice(0, 6);
+          const boxes = document.querySelectorAll(selector);
+          pasted.split('').forEach((ch, i) => { if (boxes[i]) boxes[i].value = ch; });
+          if (pasted.length >= 6 && boxes[5]) boxes[5].focus();
+        });
+      }
+
+      wireOtpBoxes('.otp-digit');
+      wireOtpBoxes('.email-otp-digit');
+
       /* ── Load & render profile ──────────────────────────────── */
       function loadProfile() {
-        $.ajax({
-            url: API,
-            type: 'GET',
-            data: {
-              action: 'get'
-            },
-            dataType: 'json'
-          })
+        $.ajax({ url: API, type: 'GET', data: { action: 'get' }, dataType: 'json' })
           .done(function(res) {
-            if (!res.success) {
-              toast.error(res.message || 'Failed to load profile.');
-              return;
-            }
+            if (!res.success) { toast.error(res.message || 'Failed to load profile.'); return; }
             renderProfile(res.data);
           })
-          .fail(function() {
-            toast.error('Network error loading profile.');
-          });
+          .fail(function() { toast.error('Network error loading profile.'); });
       }
 
       function renderProfile(u) {
@@ -917,9 +1018,7 @@ $pageTitle = 'My Profile';
           `).show();
           $hint.find('#changeGmailLink').on('click', function(e) {
             e.preventDefault();
-            document.getElementById('gmailCard').scrollIntoView({
-              behavior: 'smooth'
-            });
+            document.getElementById('gmailCard').scrollIntoView({ behavior: 'smooth' });
             $('#btnReconnectGmail').trigger('click');
           });
         } else {
@@ -929,46 +1028,34 @@ $pageTitle = 'My Profile';
           `).show();
           $hint.find('#connectGmailLink').on('click', function(e) {
             e.preventDefault();
-            document.getElementById('gmailCard').scrollIntoView({
-              behavior: 'smooth'
-            });
+            document.getElementById('gmailCard').scrollIntoView({ behavior: 'smooth' });
           });
         }
 
         // ── Account details ──
-        const statusBadge = u.is_active ?
-          '<span class="badge-qa active"><i class="fa-solid fa-check me-1"></i>Active</span>' :
-          '<span class="badge-qa cancelled"><i class="fa-solid fa-xmark me-1"></i>Inactive</span>';
+        const statusBadge = u.is_active
+          ? '<span class="badge-qa active"><i class="fa-solid fa-check me-1"></i>Active</span>'
+          : '<span class="badge-qa cancelled"><i class="fa-solid fa-xmark me-1"></i>Inactive</span>';
 
         $('#metaList').html(`
           <li>
-            <span class="meta-key">
-              <i class="fa-solid fa-fingerprint me-2" style="color:var(--text-muted,#aaa);"></i>User ID
-            </span>
+            <span class="meta-key"><i class="fa-solid fa-fingerprint me-2" style="color:var(--text-muted,#aaa);"></i>User ID</span>
             <span class="meta-val">#${esc(u.user_id)}</span>
           </li>
           <li>
-            <span class="meta-key">
-              <i class="fa-solid fa-circle-check me-2" style="color:var(--text-muted,#aaa);"></i>Account Status
-            </span>
+            <span class="meta-key"><i class="fa-solid fa-circle-check me-2" style="color:var(--text-muted,#aaa);"></i>Account Status</span>
             <span class="meta-val">${statusBadge}</span>
           </li>
           <li>
-            <span class="meta-key">
-              <i class="fa-regular fa-calendar me-2" style="color:var(--text-muted,#aaa);"></i>Member Since
-            </span>
+            <span class="meta-key"><i class="fa-regular fa-calendar me-2" style="color:var(--text-muted,#aaa);"></i>Member Since</span>
             <span class="meta-val">${formatDate(u.created_at)}</span>
           </li>
           <li>
-            <span class="meta-key">
-              <i class="fa-solid fa-paper-plane me-2" style="color:var(--text-muted,#aaa);"></i>Surveys Created
-            </span>
+            <span class="meta-key"><i class="fa-solid fa-paper-plane me-2" style="color:var(--text-muted,#aaa);"></i>Surveys Created</span>
             <span class="meta-val">${esc(act.surveys_created ?? 0)}</span>
           </li>
           <li>
-            <span class="meta-key">
-              <i class="fa-solid fa-file-lines me-2" style="color:var(--text-muted,#aaa);"></i>Reports Generated
-            </span>
+            <span class="meta-key"><i class="fa-solid fa-file-lines me-2" style="color:var(--text-muted,#aaa);"></i>Reports Generated</span>
             <span class="meta-val">${esc(act.reports_generated ?? 0)}</span>
           </li>
         `);
@@ -1026,109 +1113,209 @@ $pageTitle = 'My Profile';
         $(this).hide();
       });
 
-      /* ── Save email form ────────────────────────────────────── */
+      /* ══════════════════════════════════════════════════════════
+         EMAIL CHANGE — Step 1: submit form → send OTP to OLD email
+      ══════════════════════════════════════════════════════════ */
+      let _pendingNewEmail = '';
+      let _emailResendTimer = null;
+
       $('#gmailForm').on('submit', function(e) {
         e.preventDefault();
+        clearErrors([['gmailUsername', 'errGmailUsername']]);
 
-        // Clear only the email field error
-        clearErrors([
-          ['gmailUsername', 'errGmailUsername'],
-        ]);
-
+        const newEmail = $('#gmailUsername').val().trim();
         const btn = document.getElementById('btnConnectGmail');
-        btnLoading(btn, 'Saving…');
+        btnLoading(btn, 'Sending…');
 
         $.ajax({
-            url: API,
-            type: 'POST',
-            contentType: 'application/json',
-            dataType: 'json',
-            data: JSON.stringify({
-              action: 'verify_gmail',
-              gmail_username: $('#gmailUsername').val().trim(),
-            })
-          })
-          .done(function(res) {
-            if (res.success) {
-              const newAddress = res.data?.gmail_address || $('#gmailUsername').val().trim();
+          url: API,
+          type: 'POST',
+          contentType: 'application/json',
+          dataType: 'json',
+          data: JSON.stringify({ action: 'send_email_change_code', new_email: newEmail }),
+        })
+        .done(function(res) {
+          if (res.success) {
+            if (res.data?.direct) {
+              // First-time setup — no old email, saved directly
+              const saved = res.data.gmail_address || newEmail;
               toast.success(res.message || 'Email address saved successfully!', 'Saved');
-
-              // Update the status banner and hide the form
-              renderGmailStatus(true, newAddress);
-
-              // Sync the read-only email field in Personal Information
-              $('#emailField').val(newAddress);
-              $('#emailFieldHint').html(`
-                <i class="fa-solid fa-envelope-circle-check" style="color:#27ae60;"></i>
-                Email address on file.
-                <a href="#gmailCard" id="changeGmailLink">Change email</a>
-              `).show();
-              $('#emailFieldHint #changeGmailLink').on('click', function(e) {
-                e.preventDefault();
-                document.getElementById('gmailCard').scrollIntoView({
-                  behavior: 'smooth'
-                });
-                $('#btnReconnectGmail').trigger('click');
-              });
+              renderGmailStatus(true, saved);
+              syncEmailField(saved);
             } else {
-              const errs = res.data?.errors || {};
-              if (errs.gmail_username) {
-                setFieldError('gmailUsername', 'errGmailUsername', errs.gmail_username);
-              } else if (res.data?.warn) {
-                // Domain doesn't exist — show as a warning toast, not an inline error
-                toast.warning ?
-                  toast.warning(res.message) :
-                  toast.error('⚠️ ' + res.message); // fallback if toast.warning isn't defined in app.js
-              } else {
-                toast.error(res.message || 'Failed to save email. Please try again.');
-              }
+              // OTP was sent to old email — open OTP modal
+              _pendingNewEmail = newEmail;
+              const sentTo = res.data?.sent_to || '—';
+              openEmailOtpModal(sentTo, newEmail);
             }
-          })
-          .fail(function() {
-            toast.error('Network error. Please try again.');
-          })
-          .always(function() {
-            btnReset(btn);
-          });
+          } else {
+            const errs = res.data?.errors || {};
+            if (errs.gmail_username) {
+              setFieldError('gmailUsername', 'errGmailUsername', errs.gmail_username);
+            } else if (res.data?.warn) {
+              toast.warning ? toast.warning(res.message) : toast.error('⚠️ ' + res.message);
+            } else {
+              toast.error(res.message || 'Failed to send verification code. Please try again.');
+            }
+          }
+        })
+        .fail(function() { toast.error('Network error. Please try again.'); })
+        .always(function() { btnReset(btn); });
       });
+
+      /* ── Open email OTP modal ───────────────────────────────── */
+      function openEmailOtpModal(sentTo, newAddr) {
+        $('#emailOtpBoxRow .email-otp-digit').val('').removeClass('is-invalid');
+        $('#errEmailOtpCode').text('').removeClass('show');
+        $('#emailOtpSentTo').text(sentTo);
+        $('#emailOtpNewAddr').text(newAddr);
+        startEmailResendCooldown(30);
+        new bootstrap.Modal(document.getElementById('modalEmailChangeOtp')).show();
+        document.getElementById('modalEmailChangeOtp').addEventListener('shown.bs.modal', function focusFirst() {
+          document.querySelectorAll('.email-otp-digit')[0]?.focus();
+          this.removeEventListener('shown.bs.modal', focusFirst);
+        });
+      }
+
+      /* ── Email OTP resend cooldown ──────────────────────────── */
+      function startEmailResendCooldown(seconds) {
+        clearInterval(_emailResendTimer);
+        $('#btnResendEmailCode').hide();
+        $('#emailResendCountdown').text('(' + seconds + 's)').show();
+        let left = seconds;
+        _emailResendTimer = setInterval(function() {
+          left--;
+          if (left <= 0) {
+            clearInterval(_emailResendTimer);
+            $('#emailResendCountdown').hide();
+            $('#btnResendEmailCode').show();
+          } else {
+            $('#emailResendCountdown').text('(' + left + 's)');
+          }
+        }, 1000);
+      }
+
+      /* ── Resend email change code ───────────────────────────── */
+      $('#btnResendEmailCode').on('click', function() {
+        const btn = this;
+        btnLoading(btn, 'Sending…');
+        $.ajax({
+          url: API,
+          type: 'POST',
+          contentType: 'application/json',
+          dataType: 'json',
+          data: JSON.stringify({ action: 'send_email_change_code', new_email: _pendingNewEmail }),
+        })
+        .done(function(res) {
+          if (res.success && !res.data?.direct) {
+            toast.success('A new code has been sent.', 'Sent');
+            $('#emailOtpBoxRow .email-otp-digit').val('').first().focus();
+            $('#errEmailOtpCode').text('').removeClass('show');
+            startEmailResendCooldown(30);
+          } else {
+            toast.error(res.message || 'Could not resend code.');
+          }
+        })
+        .fail(function() { toast.error('Network error.'); })
+        .always(function() { btnReset(btn); });
+      });
+
+      /* ── Cancel email OTP modal ─────────────────────────────── */
+      $('#btnCancelEmailOtp').on('click', function() {
+        clearInterval(_emailResendTimer);
+        bootstrap.Modal.getInstance(document.getElementById('modalEmailChangeOtp')).hide();
+      });
+
+      /* ══════════════════════════════════════════════════════════
+         EMAIL CHANGE — Step 2: verify OTP → commit new email
+      ══════════════════════════════════════════════════════════ */
+      $('#btnVerifyEmailOtp').on('click', function() {
+        const code = Array.from(document.querySelectorAll('.email-otp-digit'))
+          .map(i => i.value).join('');
+
+        if (code.length < 6) {
+          $('#errEmailOtpCode').text('Please enter all 6 digits.').addClass('show');
+          document.querySelectorAll('.email-otp-digit')[code.length]?.focus();
+          return;
+        }
+
+        const btn = this;
+        btnLoading(btn, 'Verifying…');
+        $('#errEmailOtpCode').text('').removeClass('show');
+
+        $.ajax({
+          url: API,
+          type: 'POST',
+          contentType: 'application/json',
+          dataType: 'json',
+          data: JSON.stringify({ action: 'verify_email_change_code', code: code }),
+        })
+        .done(function(res) {
+          if (res.success) {
+            clearInterval(_emailResendTimer);
+            bootstrap.Modal.getInstance(document.getElementById('modalEmailChangeOtp')).hide();
+            const saved = res.data?.gmail_address || _pendingNewEmail;
+            toast.success(res.message || 'Email address updated successfully!', 'Updated');
+            renderGmailStatus(true, saved);
+            syncEmailField(saved);
+          } else {
+            const msg = res.data?.errors?.code || res.message || 'Incorrect code.';
+            $('#errEmailOtpCode').text(msg).addClass('show');
+            $('#emailOtpBoxRow').addClass('otp-shake');
+            setTimeout(() => $('#emailOtpBoxRow').removeClass('otp-shake'), 500);
+          }
+        })
+        .fail(function() { toast.error('Network error.'); })
+        .always(function() { btnReset(btn); });
+      });
+
+      /* ── Helper: sync the read-only email field after a save ── */
+      function syncEmailField(newAddress) {
+        $('#emailField').val(newAddress);
+        $('#heroEmail').text(newAddress);
+        $('#emailFieldHint').html(`
+          <i class="fa-solid fa-envelope-circle-check" style="color:#27ae60;"></i>
+          Email address on file.
+          <a href="#gmailCard" id="changeGmailLink">Change email</a>
+        `).show();
+        $('#emailFieldHint #changeGmailLink').off('click').on('click', function(e) {
+          e.preventDefault();
+          document.getElementById('gmailCard').scrollIntoView({ behavior: 'smooth' });
+          $('#btnReconnectGmail').trigger('click');
+        });
+      }
 
       /* ── Save profile info ──────────────────────────────────── */
       $('#infoForm').on('submit', function(e) {
         e.preventDefault();
-        clearErrors([
-          ['fullName', 'errFullName']
-        ]);
+        clearErrors([['fullName', 'errFullName']]);
 
         const btn = document.getElementById('btnSaveInfo');
         btnLoading(btn, 'Saving…');
 
         $.ajax({
-            url: API,
-            type: 'POST',
-            contentType: 'application/json',
-            dataType: 'json',
-            data: JSON.stringify({
-              action: 'update_info',
-              full_name: $('#fullName').val().trim(),
-              email: $('#emailField').val().trim(),
-            })
-          })
-          .done(function(res) {
-            if (res.success) {
-              toast.success('Profile updated successfully.', 'Saved');
-              loadProfile();
-            } else {
-              const errs = res.data?.errors || {};
-              if (errs.full_name) setFieldError('fullName', 'errFullName', errs.full_name);
-              if (!errs.full_name) toast.error(res.message || 'Update failed.');
-            }
-          })
-          .fail(function() {
-            toast.error('Network error. Please try again.');
-          })
-          .always(function() {
-            btnReset(btn);
-          });
+          url: API,
+          type: 'POST',
+          contentType: 'application/json',
+          dataType: 'json',
+          data: JSON.stringify({
+            action: 'update_info',
+            full_name: $('#fullName').val().trim(),
+            email: $('#emailField').val().trim(),
+          }),
+        })
+        .done(function(res) {
+          if (res.success) {
+            toast.success('Profile updated successfully.', 'Saved');
+            loadProfile();
+          } else {
+            const errs = res.data?.errors || {};
+            if (errs.full_name) setFieldError('fullName', 'errFullName', errs.full_name);
+            if (!errs.full_name) toast.error(res.message || 'Update failed.');
+          }
+        })
+        .fail(function() { toast.error('Network error. Please try again.'); })
+        .always(function() { btnReset(btn); });
       });
 
       /* ── Password strength meter ────────────────────────────── */
@@ -1140,37 +1327,15 @@ $pageTitle = 'My Profile';
         if (/[0-9]/.test(val)) score++;
         if (/[^A-Za-z0-9]/.test(val)) score++;
 
-        const map = [{
-            w: '0%',
-            bg: 'transparent',
-            lbl: ''
-          },
-          {
-            w: '25%',
-            bg: '#c0392b',
-            lbl: 'Weak'
-          },
-          {
-            w: '50%',
-            bg: '#e67e22',
-            lbl: 'Fair'
-          },
-          {
-            w: '75%',
-            bg: '#f1c40f',
-            lbl: 'Good'
-          },
-          {
-            w: '100%',
-            bg: '#27ae60',
-            lbl: 'Strong'
-          },
+        const map = [
+          { w: '0%',   bg: 'transparent', lbl: '' },
+          { w: '25%',  bg: '#c0392b',     lbl: 'Weak' },
+          { w: '50%',  bg: '#e67e22',     lbl: 'Fair' },
+          { w: '75%',  bg: '#f1c40f',     lbl: 'Good' },
+          { w: '100%', bg: '#27ae60',     lbl: 'Strong' },
         ];
         const m = map[score];
-        $('#strengthFill').css({
-          width: m.w,
-          background: m.bg
-        });
+        $('#strengthFill').css({ width: m.w, background: m.bg });
         $('#strengthText').text(m.lbl);
       });
 
@@ -1189,7 +1354,7 @@ $pageTitle = 'My Profile';
       });
 
       /* ══════════════════════════════════════════════════════════
-         STEP 1 — Open confirmation modal
+         PASSWORD CHANGE — Step 1: open confirmation modal
       ══════════════════════════════════════════════════════════ */
       let _verifiedEmail = '';
 
@@ -1205,7 +1370,7 @@ $pageTitle = 'My Profile';
       });
 
       /* ══════════════════════════════════════════════════════════
-         STEP 2a — User clicks "Yes, send code"
+         PASSWORD CHANGE — Step 2a: send code
       ══════════════════════════════════════════════════════════ */
       let _resendTimer = null;
 
@@ -1214,30 +1379,24 @@ $pageTitle = 'My Profile';
         btnLoading(btn, 'Sending…');
 
         $.ajax({
-            url: API,
-            type: 'POST',
-            contentType: 'application/json',
-            dataType: 'json',
-            data: JSON.stringify({
-              action: 'send_verification_code'
-            })
-          })
-          .done(function(res) {
-            if (res.success) {
-              bootstrap.Modal.getInstance(document.getElementById('modalConfirmCode')).hide();
-              const email = res.data?.email || _verifiedEmail;
-              _verifiedEmail = email;
-              openEnterCodeModal(email);
-            } else {
-              toast.error(res.message || 'Failed to send code. Please try again.');
-            }
-          })
-          .fail(function() {
-            toast.error('Network error. Please try again.');
-          })
-          .always(function() {
-            btnReset(btn);
-          });
+          url: API,
+          type: 'POST',
+          contentType: 'application/json',
+          dataType: 'json',
+          data: JSON.stringify({ action: 'send_verification_code' }),
+        })
+        .done(function(res) {
+          if (res.success) {
+            bootstrap.Modal.getInstance(document.getElementById('modalConfirmCode')).hide();
+            const email = res.data?.email || _verifiedEmail;
+            _verifiedEmail = email;
+            openEnterCodeModal(email);
+          } else {
+            toast.error(res.message || 'Failed to send code. Please try again.');
+          }
+        })
+        .fail(function() { toast.error('Network error. Please try again.'); })
+        .always(function() { btnReset(btn); });
       });
 
       function openEnterCodeModal(email) {
@@ -1252,35 +1411,7 @@ $pageTitle = 'My Profile';
         });
       }
 
-      /* ── OTP digit navigation ───────────────────────────────── */
-      $(document).on('input', '.otp-digit', function() {
-        const val = this.value.replace(/\D/, '');
-        this.value = val;
-        if (val && this.nextElementSibling && this.nextElementSibling.classList.contains('otp-digit')) {
-          this.nextElementSibling.focus();
-        }
-      });
-
-      $(document).on('keydown', '.otp-digit', function(e) {
-        if (e.key === 'Backspace' && !this.value &&
-          this.previousElementSibling && this.previousElementSibling.classList.contains('otp-digit')) {
-          this.previousElementSibling.focus();
-        }
-        if ((e.ctrlKey || e.metaKey) && e.key === 'v') return;
-      });
-
-      $(document).on('paste', '.otp-digit', function(e) {
-        e.preventDefault();
-        const pasted = (e.originalEvent.clipboardData || window.clipboardData)
-          .getData('text').replace(/\D/g, '').slice(0, 6);
-        const boxes = document.querySelectorAll('.otp-digit');
-        pasted.split('').forEach((ch, i) => {
-          if (boxes[i]) boxes[i].value = ch;
-        });
-        if (pasted.length >= 6 && boxes[5]) boxes[5].focus();
-      });
-
-      /* ── Resend cooldown ────────────────────────────────────── */
+      /* ── Resend cooldown (password change) ──────────────────── */
       function startResendCooldown(seconds) {
         clearInterval(_resendTimer);
         $('#btnResendCode').hide();
@@ -1302,30 +1433,24 @@ $pageTitle = 'My Profile';
         const btn = this;
         btnLoading(btn, 'Sending…');
         $.ajax({
-            url: API,
-            type: 'POST',
-            contentType: 'application/json',
-            dataType: 'json',
-            data: JSON.stringify({
-              action: 'send_verification_code'
-            })
-          })
-          .done(function(res) {
-            if (res.success) {
-              toast.success('A new code has been sent.', 'Sent');
-              $('#otpBoxRow .otp-digit').val('').first().focus();
-              $('#errOtpCode').text('').removeClass('show');
-              startResendCooldown(30);
-            } else {
-              toast.error(res.message || 'Could not resend code.');
-            }
-          })
-          .fail(function() {
-            toast.error('Network error.');
-          })
-          .always(function() {
-            btnReset(btn);
-          });
+          url: API,
+          type: 'POST',
+          contentType: 'application/json',
+          dataType: 'json',
+          data: JSON.stringify({ action: 'send_verification_code' }),
+        })
+        .done(function(res) {
+          if (res.success) {
+            toast.success('A new code has been sent.', 'Sent');
+            $('#otpBoxRow .otp-digit').val('').first().focus();
+            $('#errOtpCode').text('').removeClass('show');
+            startResendCooldown(30);
+          } else {
+            toast.error(res.message || 'Could not resend code.');
+          }
+        })
+        .fail(function() { toast.error('Network error.'); })
+        .always(function() { btnReset(btn); });
       });
 
       /* ── Cancel enter-code modal ────────────────────────────── */
@@ -1335,7 +1460,7 @@ $pageTitle = 'My Profile';
       });
 
       /* ══════════════════════════════════════════════════════════
-         STEP 2b — Verify the code
+         PASSWORD CHANGE — Step 2b: verify OTP
       ══════════════════════════════════════════════════════════ */
       $('#btnVerifyCode').on('click', function() {
         const code = Array.from(document.querySelectorAll('.otp-digit'))
@@ -1352,47 +1477,38 @@ $pageTitle = 'My Profile';
         $('#errOtpCode').text('').removeClass('show');
 
         $.ajax({
-            url: API,
-            type: 'POST',
-            contentType: 'application/json',
-            dataType: 'json',
-            data: JSON.stringify({
-              action: 'verify_code',
-              code: code
-            })
-          })
-          .done(function(res) {
-            if (res.success) {
-              clearInterval(_resendTimer);
-              bootstrap.Modal.getInstance(document.getElementById('modalEnterCode')).hide();
-              $('#pwdForm')[0].reset();
-              $('#strengthFill').css({
-                width: '0%'
-              });
-              $('#strengthText').text('');
-              clearErrors([
-                ['currentPwd', 'errCurrentPwd'],
-                ['newPwd', 'errNewPwd'],
-                ['confirmPwd', 'errConfirmPwd'],
-              ]);
-              new bootstrap.Modal(document.getElementById('modalChangePassword')).show();
-            } else {
-              const msg = res.data?.errors?.code || res.message || 'Incorrect code.';
-              $('#errOtpCode').text(msg).addClass('show');
-              $('#otpBoxRow').addClass('otp-shake');
-              setTimeout(() => $('#otpBoxRow').removeClass('otp-shake'), 500);
-            }
-          })
-          .fail(function() {
-            toast.error('Network error.');
-          })
-          .always(function() {
-            btnReset(btn);
-          });
+          url: API,
+          type: 'POST',
+          contentType: 'application/json',
+          dataType: 'json',
+          data: JSON.stringify({ action: 'verify_code', code: code }),
+        })
+        .done(function(res) {
+          if (res.success) {
+            clearInterval(_resendTimer);
+            bootstrap.Modal.getInstance(document.getElementById('modalEnterCode')).hide();
+            $('#pwdForm')[0].reset();
+            $('#strengthFill').css({ width: '0%' });
+            $('#strengthText').text('');
+            clearErrors([
+              ['currentPwd', 'errCurrentPwd'],
+              ['newPwd', 'errNewPwd'],
+              ['confirmPwd', 'errConfirmPwd'],
+            ]);
+            new bootstrap.Modal(document.getElementById('modalChangePassword')).show();
+          } else {
+            const msg = res.data?.errors?.code || res.message || 'Incorrect code.';
+            $('#errOtpCode').text(msg).addClass('show');
+            $('#otpBoxRow').addClass('otp-shake');
+            setTimeout(() => $('#otpBoxRow').removeClass('otp-shake'), 500);
+          }
+        })
+        .fail(function() { toast.error('Network error.'); })
+        .always(function() { btnReset(btn); });
       });
 
       /* ══════════════════════════════════════════════════════════
-         STEP 3 — Submit new password
+         PASSWORD CHANGE — Step 3: submit new password
       ══════════════════════════════════════════════════════════ */
       $('#btnCancelPwd').on('click', function() {
         bootstrap.Modal.getInstance(document.getElementById('modalChangePassword')).hide();
@@ -1410,40 +1526,34 @@ $pageTitle = 'My Profile';
         btnLoading(btn, 'Updating…');
 
         $.ajax({
-            url: API,
-            type: 'POST',
-            contentType: 'application/json',
-            dataType: 'json',
-            data: JSON.stringify({
-              action: 'change_password',
-              current_password: $('#currentPwd').val(),
-              new_password: $('#newPwd').val(),
-              confirm_password: $('#confirmPwd').val(),
-            })
-          })
-          .done(function(res) {
-            if (res.success) {
-              bootstrap.Modal.getInstance(document.getElementById('modalChangePassword')).hide();
-              toast.success('Password changed successfully.', 'Updated');
-              $('#pwdForm')[0].reset();
-              $('#strengthFill').css({
-                width: '0%'
-              });
-              $('#strengthText').text('');
-            } else {
-              const errs = res.data?.errors || {};
-              if (errs.current_password) setFieldError('currentPwd', 'errCurrentPwd', errs.current_password);
-              if (errs.new_password) setFieldError('newPwd', 'errNewPwd', errs.new_password);
-              if (errs.confirm_password) setFieldError('confirmPwd', 'errConfirmPwd', errs.confirm_password);
-              if (!Object.keys(errs).length) toast.error(res.message || 'Password change failed.');
-            }
-          })
-          .fail(function() {
-            toast.error('Network error. Please try again.');
-          })
-          .always(function() {
-            btnReset(btn);
-          });
+          url: API,
+          type: 'POST',
+          contentType: 'application/json',
+          dataType: 'json',
+          data: JSON.stringify({
+            action: 'change_password',
+            current_password: $('#currentPwd').val(),
+            new_password: $('#newPwd').val(),
+            confirm_password: $('#confirmPwd').val(),
+          }),
+        })
+        .done(function(res) {
+          if (res.success) {
+            bootstrap.Modal.getInstance(document.getElementById('modalChangePassword')).hide();
+            toast.success('Password changed successfully.', 'Updated');
+            $('#pwdForm')[0].reset();
+            $('#strengthFill').css({ width: '0%' });
+            $('#strengthText').text('');
+          } else {
+            const errs = res.data?.errors || {};
+            if (errs.current_password) setFieldError('currentPwd', 'errCurrentPwd', errs.current_password);
+            if (errs.new_password)     setFieldError('newPwd',     'errNewPwd',      errs.new_password);
+            if (errs.confirm_password) setFieldError('confirmPwd', 'errConfirmPwd',  errs.confirm_password);
+            if (!Object.keys(errs).length) toast.error(res.message || 'Password change failed.');
+          }
+        })
+        .fail(function() { toast.error('Network error. Please try again.'); })
+        .always(function() { btnReset(btn); });
       });
 
       /* ── Init ───────────────────────────────────────────────── */
