@@ -430,7 +430,7 @@ $pageTitle = 'My Profile';
         <div class="row g-3 mb-3">
 
           <!-- Personal Information -->
-          <div class="col-12 col-lg-6">
+          <div class="col-12">
             <div class="card h-100">
               <div class="card-header-custom">
                 <h3 class="card-title">
