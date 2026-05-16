@@ -424,7 +424,6 @@ $pageTitle = 'My Profile';
             </div>
             <div class="hero-badges" id="heroBadges"></div>
           </div>
-          <div class="hero-stats" id="heroStats"></div>
         </div>
 
         <!-- ── Forms row ─────────────────────────────────────── -->
@@ -489,7 +488,7 @@ $pageTitle = 'My Profile';
             </div>
           </div>
 
-          <div class="col-12 col-lg-6">
+          <!-- <div class="col-12 col-lg-6">
             <div class="row g-3">
               <div class="col-12">
                 <div class="card">
@@ -502,7 +501,6 @@ $pageTitle = 'My Profile';
                   </div>
                   <div class="card-body-custom">
                     <ul class="meta-list" id="metaList">
-                      <!-- Skeleton placeholder rows -->
                       <?php for ($i = 0; $i < 5; $i++): ?>
                         <li>
                           <span class="meta-key">
@@ -522,7 +520,7 @@ $pageTitle = 'My Profile';
                 </div>
               </div>
             </div>
-          </div>
+          </div> -->
 
         </div>
 
