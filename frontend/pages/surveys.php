@@ -191,9 +191,7 @@ $pageTitle = 'Survey Management';
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content" style="border-radius:var(--radius-lg);">
                         <div class="modal-header" style="border-bottom:1px solid var(--border);padding:20px 24px;">
-                            <h5 class="modal-title" style="font-weight:700;color:var(--accent-orange);">
-                                <i class="fa-solid fa-triangle-exclamation me-2"></i>Delete Response
-                            </h5>
+                           
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body" style="padding:24px;">
@@ -887,14 +885,7 @@ $pageTitle = 'Survey Management';
                                         style="padding:4px 10px;font-size:.75rem;" title="View answers">
                                         <i class="fa-solid fa-eye me-1"></i> View
                                     </button>
-                                    <button class="delete-respondent-btn btn-sm"
-                                        data-id="${respondent.respondent_id}"
-                                        style="padding:4px 10px;font-size:.75rem;font-weight:600;margin-left:2px;
-                                               border:1px solid var(--accent-orange);border-radius:var(--radius);
-                                               background:transparent;color:var(--accent-orange);cursor:pointer;"
-                                        title="Delete response">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
+                                   
                                 </td>
                             </tr>`;
                         }).join('');
