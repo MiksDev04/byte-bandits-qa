@@ -114,6 +114,7 @@ $pageTitle = 'Survey Management';
                                         </tbody>
                                     </table>
                                 </div>
+                                <?php include '../partials/pagination.php'; ?>
                             </div>
                         </div>
                     </div>
@@ -191,7 +192,7 @@ $pageTitle = 'Survey Management';
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content" style="border-radius:var(--radius-lg);">
                         <div class="modal-header" style="border-bottom:1px solid var(--border);padding:20px 24px;">
-                           
+
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body" style="padding:24px;">
@@ -868,9 +869,9 @@ $pageTitle = 'Survey Management';
                     } else {
                         const rows = respondents.map(function(respondent, idx) {
                             const meta = [
-                                respondent.respondent_role ? escapeHtml(respondent.respondent_role)                        : null,
-                                respondent.student_id      ? `Student ID: ${escapeHtml(String(respondent.student_id))}`   : null,
-                                respondent.employee_id     ? `Employee ID: ${escapeHtml(String(respondent.employee_id))}` : null,
+                                respondent.respondent_role ? escapeHtml(respondent.respondent_role) : null,
+                                respondent.student_id ? `Student ID: ${escapeHtml(String(respondent.student_id))}` : null,
+                                respondent.employee_id ? `Employee ID: ${escapeHtml(String(respondent.employee_id))}` : null,
                             ].filter(Boolean).join(' · ');
 
                             return `
@@ -920,22 +921,23 @@ $pageTitle = 'Survey Management';
                             </div>
                         </div>
                         <div class="card-body-custom">${respondentHtml}</div>
+                          <?php include '../partials/pagination.php'; ?>
                     </div>`;
                 }
 
                 // ── Opens modal with a single respondent's full answer table ─────────
                 function openRespondentAnswersModal(respondentId) {
                     let foundRespondent = null;
-                    let foundSurvey     = null;
-                    let foundIdx        = -1;
+                    let foundSurvey = null;
+                    let foundIdx = -1;
 
                     for (const survey of responseSurveyCache) {
                         const list = Array.isArray(survey.respondents) ? survey.respondents : [];
-                        const idx  = list.findIndex(r => String(r.respondent_id) === String(respondentId));
+                        const idx = list.findIndex(r => String(r.respondent_id) === String(respondentId));
                         if (idx !== -1) {
                             foundRespondent = list[idx];
-                            foundSurvey     = survey;
-                            foundIdx        = idx;
+                            foundSurvey = survey;
+                            foundIdx = idx;
                             break;
                         }
                     }
@@ -948,9 +950,9 @@ $pageTitle = 'Survey Management';
                     const answers = Array.isArray(foundRespondent.answers) ? foundRespondent.answers : [];
 
                     const meta = [
-                        foundRespondent.respondent_role ? `Role: ${escapeHtml(foundRespondent.respondent_role)}`             : null,
-                        foundRespondent.student_id      ? `Student ID: ${escapeHtml(String(foundRespondent.student_id))}`    : null,
-                        foundRespondent.employee_id     ? `Employee ID: ${escapeHtml(String(foundRespondent.employee_id))}` : null,
+                        foundRespondent.respondent_role ? `Role: ${escapeHtml(foundRespondent.respondent_role)}` : null,
+                        foundRespondent.student_id ? `Student ID: ${escapeHtml(String(foundRespondent.student_id))}` : null,
+                        foundRespondent.employee_id ? `Employee ID: ${escapeHtml(String(foundRespondent.employee_id))}` : null,
                         `Submitted: ${escapeHtml(foundRespondent.submitted_at || 'N/A')}`,
                     ].filter(Boolean).join(' · ');
 
@@ -1177,9 +1179,9 @@ $pageTitle = 'Survey Management';
 
                 function formatAnswerValue(answer) {
                     if (answer.display_value !== undefined && String(answer.display_value).trim() !== '') return answer.display_value;
-                    if (answer.rating_value  !== undefined && String(answer.rating_value).trim()  !== '') return answer.rating_value;
+                    if (answer.rating_value !== undefined && String(answer.rating_value).trim() !== '') return answer.rating_value;
                     if (answer.option_text) return answer.option_text;
-                    if (answer.text_answer)  return answer.text_answer;
+                    if (answer.text_answer) return answer.text_answer;
                     return '-';
                 }
 
@@ -1197,7 +1199,7 @@ $pageTitle = 'Survey Management';
                         '&': '&amp;',
                         '<': '&lt;',
                         '>': '&gt;'
-                    }[m]));
+                    } [m]));
                 }
 
                 function copySurveyLink(surveyId) {
@@ -1287,14 +1289,14 @@ $pageTitle = 'Survey Management';
                     if (!container) return;
 
                     const canvas = container.querySelector('canvas');
-                    const img    = container.querySelector('img');
-                    let dataUrl  = '';
+                    const img = container.querySelector('img');
+                    let dataUrl = '';
 
                     if (canvas) {
                         dataUrl = canvas.toDataURL('image/png');
                     } else if (img) {
                         const tempCanvas = document.createElement('canvas');
-                        tempCanvas.width  = img.naturalWidth  || img.width  || 200;
+                        tempCanvas.width = img.naturalWidth || img.width || 200;
                         tempCanvas.height = img.naturalHeight || img.height || 200;
                         const ctx = tempCanvas.getContext('2d');
                         if (!ctx) return;
@@ -1308,7 +1310,7 @@ $pageTitle = 'Survey Management';
                     }
 
                     const a = document.createElement('a');
-                    a.href     = dataUrl;
+                    a.href = dataUrl;
                     a.download = `survey-qr-${surveyId}.png`;
                     document.body.appendChild(a);
                     a.click();
