@@ -69,7 +69,7 @@ $pageTitle = 'Reports';
 
         <!-- ── Section tabs ─────────────────────────────────────── -->
         <div class="mb-4" style="border-bottom:1px solid var(--border);">
-          <nav class="d-flex gap-3" style="padding-bottom:0;" id="report-tabs">
+          <nav class="d-flex gap-3 flex-wrap" style="padding-bottom:0;" id="report-tabs">
             <?php
             $tabs = [
               ['key' => 'summary',   'label' => 'Overview'],

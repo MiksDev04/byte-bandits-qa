@@ -104,7 +104,7 @@ $pageTitle = 'Action Plans';
 
                 <!-- Search and Filter -->
                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 flex-wrap">
                         <div class="header-search" style="width: 300px;">
                             <i class="fa-solid fa-magnifying-glass search-icon"></i>
                             <input type="text" id="searchInput" placeholder="Search action plans by title or description..." class="form-control-qa" style="padding-left: 34px;">

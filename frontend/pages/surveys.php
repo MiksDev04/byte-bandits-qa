@@ -145,7 +145,7 @@ $pageTitle = 'Survey Management';
 
             <!-- ── Modals ────────────────────────────────────────────────────── -->
 
-            <!-- Response Details -->
+            <!-- Response Details (survey questions overview) -->
             <div class="modal fade" id="responseDetailsModal" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-xl modal-dialog-scrollable">
                     <div class="modal-content" style="border-radius:var(--radius-lg);">
@@ -209,6 +209,31 @@ $pageTitle = 'Survey Management';
                                    padding:8px 16px;border-radius:var(--radius);font-weight:600;">
                                 Delete Response
                             </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Respondent Answer Details Modal (NEW) ────────────────────── -->
+            <div class="modal fade" id="respondentAnswersModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content" style="border-radius:var(--radius-lg);">
+                        <div class="modal-header" style="border-bottom:1px solid var(--border);padding:20px 24px;">
+                            <div>
+                                <h5 class="modal-title mb-1" id="respondentAnswersModalTitle" style="font-weight:700;">Response Details</h5>
+                                <div class="text-muted-qa" id="respondentAnswersModalSubtitle" style="font-size:.83rem;"></div>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body" id="respondentAnswersModalBody" style="padding:24px;"></div>
+                        <div class="modal-footer" style="border-top:1px solid var(--border);padding:16px 24px;justify-content:space-between;">
+                            <button type="button" id="deleteFromAnswersModalBtn"
+                                style="background:transparent;color:var(--accent-orange);
+                                       border:1px solid var(--accent-orange);padding:8px 16px;
+                                       border-radius:var(--radius);font-weight:600;cursor:pointer;">
+                                <i class="fa-solid fa-trash me-1"></i> Delete Response
+                            </button>
+                            <button type="button" class="btn-outline-qa" data-bs-dismiss="modal">Close</button>
                         </div>
                     </div>
                 </div>
@@ -433,15 +458,35 @@ $pageTitle = 'Survey Management';
                     // ── Date validation – end_date cannot precede start_date ──────────
                     $('#surveyStartDate, #surveyEndDate').on('change', function() {
                         validateDateRange();
-                        validateActiveStatus(); // re-check activation eligibility
+                        validateActiveStatus();
                     });
 
                     // ── Status change – re-check eligibility for Active ───────────────
                     $('#surveyStatus').on('change', validateActiveStatus);
 
-                    // ── Response details ──────────────────────────────────────────────
+                    // ── Response details (survey questions overview) ───────────────────
                     $(document).on('click', '.view-response-details', function() {
                         openResponseDetailsModal($(this).data('id'));
+                    });
+
+                    // ── View individual respondent answers → modal ────────────────────
+                    $(document).on('click', '.view-respondent-answers', function() {
+                        openRespondentAnswersModal($(this).data('id'));
+                    });
+
+                    // ── Delete from inside the answers modal → chain to confirm modal ──
+                    $('#deleteFromAnswersModalBtn').on('click', function() {
+                        const id = $(this).data('id');
+                        const answersModal = bootstrap.Modal.getOrCreateInstance(
+                            document.getElementById('respondentAnswersModal')
+                        );
+                        answersModal.hide();
+                        $('#respondentAnswersModal').one('hidden.bs.modal', function() {
+                            pendingDeleteRespondentId = id;
+                            bootstrap.Modal.getOrCreateInstance(
+                                document.getElementById('deleteResponseConfirmModal')
+                            ).show();
+                        });
                     });
 
                     // ── Delete survey ─────────────────────────────────────────────────
@@ -585,8 +630,7 @@ $pageTitle = 'Survey Management';
                     <td>
                         <button class="btn-outline-qa btn-sm edit-survey" data-id="${survey.survey_id}"
                                 style="padding:4px 8px;font-size:.75rem;"
-                                title="Edit survey"
-                                ${survey.status === 'Closed' ? '' : ''}>
+                                title="Edit survey">
                             <i class="fa-solid fa-edit"></i>
                         </button>
                         <button class="btn-outline-qa btn-sm view-responses" data-id="${survey.survey_id}"
@@ -650,16 +694,9 @@ $pageTitle = 'Survey Management';
                             $('#surveyStartDate').val(survey.start_date);
                             $('#surveyEndDate').val(survey.end_date);
 
-                            // Closed is shown read-only; users cannot select it manually.
                             const $statusSelect = $('#surveyStatus');
                             if (isClosed) {
                                 $statusSelect.val('Draft').prop('disabled', false);
-                                $('#statusHint').html(
-                                    '<i class="fa-solid fa-triangle-exclamation me-1" style="color:var(--accent-orange);"></i>' +
-                                    'This survey is currently <strong>Closed</strong> (its end date has passed). ' +
-                                    'It will be saved as <strong>Draft</strong> unless you choose otherwise. ' +
-                                    'To reactivate it, update the end date and set status to <strong>Active</strong>.'
-                                );
                                 $('#statusHint').html(
                                     '<i class="fa-solid fa-lock me-1"></i>' +
                                     'This survey is <strong>Closed</strong> because its end date has passed. ' +
@@ -684,7 +721,6 @@ $pageTitle = 'Survey Management';
                 }
 
                 function saveSurvey() {
-                    // Run client-side validations before sending
                     const dateOk = validateDateRange();
                     const statusOk = validateActiveStatus();
 
@@ -822,6 +858,7 @@ $pageTitle = 'Survey Management';
                     $('#allResponsesContainer').html(surveys.map(renderSurveyAnswers).join(''));
                 }
 
+                // ── Renders a flat respondents table per survey (no accordion) ────────
                 function renderSurveyAnswers(survey) {
                     const respondents = Array.isArray(survey.respondents) ? survey.respondents : [];
                     const statusBadge = getStatusBadge(survey.status);
@@ -831,78 +868,137 @@ $pageTitle = 'Survey Management';
                     if (respondents.length === 0) {
                         respondentHtml = '<div class="text-center py-5 text-muted-qa">No responses submitted for this survey yet.</div>';
                     } else {
-                        respondentHtml = `<div class="accordion" id="respondentsAccordion_${survey.survey_id}">`;
+                        const rows = respondents.map(function(respondent, idx) {
+                            const meta = [
+                                respondent.respondent_role ? escapeHtml(respondent.respondent_role)                        : null,
+                                respondent.student_id      ? `Student ID: ${escapeHtml(String(respondent.student_id))}`   : null,
+                                respondent.employee_id     ? `Employee ID: ${escapeHtml(String(respondent.employee_id))}` : null,
+                            ].filter(Boolean).join(' · ');
 
-                        respondents.forEach(function(respondent, idx) {
-                            const answers = Array.isArray(respondent.answers) ? respondent.answers : [];
-                            const collapseId = `respondent_${survey.survey_id}_${idx}`;
-
-                            const answerRows = answers.length === 0 ?
-                                `<tr><td colspan="3" class="text-center text-muted-qa">No answers recorded.</td></tr>` :
-                                answers.map(a => `
+                            return `
                             <tr>
-                                <td>${escapeHtml(a.question_text || 'Unknown')}</td>
-                                <td>${escapeHtml(formatAnswerValue(a))}</td>
-                                <td><small class="text-muted-qa">${escapeHtml(a.question_type || '-')}</small></td>
-                            </tr>`).join('');
-
-                            respondentHtml += `
-                    <div class="accordion-item" id="accordion-respondent-${respondent.respondent_id}">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed" type="button"
-                                data-bs-toggle="collapse" data-bs-target="#${collapseId}"
-                                aria-expanded="false"
-                                style="padding:12px 16px;font-size:.95rem;">
-                                <strong>Respondent ${idx + 1}</strong>
-                                <span class="text-muted-qa" style="font-size:.85rem;margin-left:12px;">
-                                    ${escapeHtml(respondent.submitted_at || 'N/A')}
-                                </span>
-                            </button>
-                        </h2>
-                        <div id="${collapseId}" class="accordion-collapse collapse"
-                             data-bs-parent="#respondentsAccordion_${survey.survey_id}">
-                            <div class="accordion-body" style="padding:16px;">
-                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                                    <div class="text-muted-qa small">
-                                        Role: ${escapeHtml(respondent.respondent_role || 'N/A')}
-                                        ${respondent.student_id  ? ` · Student ID: ${escapeHtml(String(respondent.student_id))}`  : ''}
-                                        ${respondent.employee_id ? ` · Employee ID: ${escapeHtml(String(respondent.employee_id))}` : ''}
-                                    </div>
-                                    <button class="delete-respondent-btn" data-id="${respondent.respondent_id}"
-                                        style="padding:5px 12px;font-size:.78rem;font-weight:600;
-                                               border:1px solid var(--accent-orange);border-radius:var(--radius);
-                                               background:transparent;color:var(--accent-orange);cursor:pointer;">
-                                        <i class="fa-solid fa-trash me-1"></i> Delete Response
+                                <td><strong>Respondent ${idx + 1}</strong></td>
+                                <td class="text-muted-qa small">${meta || '—'}</td>
+                                <td class="text-muted-qa small">${escapeHtml(respondent.submitted_at || 'N/A')}</td>
+                                <td>${Array.isArray(respondent.answers) ? respondent.answers.length : 0}</td>
+                                <td>
+                                    <button class="btn-outline-qa btn-sm view-respondent-answers"
+                                        data-id="${respondent.respondent_id}"
+                                        style="padding:4px 10px;font-size:.75rem;" title="View answers">
+                                        <i class="fa-solid fa-eye me-1"></i> View
                                     </button>
-                                </div>
-                                <div class="table-responsive">
-                                    <table class="table-qa table-sm mb-0">
-                                        <thead><tr><th>Question</th><th>Answer</th><th>Type</th></tr></thead>
-                                        <tbody>${answerRows}</tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
-                        });
+                                    <button class="delete-respondent-btn btn-sm"
+                                        data-id="${respondent.respondent_id}"
+                                        style="padding:4px 10px;font-size:.75rem;font-weight:600;margin-left:2px;
+                                               border:1px solid var(--accent-orange);border-radius:var(--radius);
+                                               background:transparent;color:var(--accent-orange);cursor:pointer;"
+                                        title="Delete response">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>`;
+                        }).join('');
 
-                        respondentHtml += '</div>';
+                        respondentHtml = `
+                        <div class="table-responsive">
+                            <table class="table-qa">
+                                <thead>
+                                    <tr>
+                                        <th>Respondent</th>
+                                        <th>Role / ID</th>
+                                        <th>Submitted</th>
+                                        <th>Answers</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${rows}</tbody>
+                            </table>
+                        </div>`;
                     }
 
                     return `
-            <div class="card mb-4">
-                <div class="card-header-custom">
-                    <div class="card-title mb-1">
-                        <i class="fa-solid fa-file-lines me-2"></i> ${escapeHtml(survey.title || 'Untitled Survey')}
-                    </div>
-                    <div class="text-muted-qa small">
-                        Survey ID ${survey.survey_id} · Target: ${escapeHtml(survey.target_group || 'N/A')} ·
-                        ${escapeHtml(survey.start_date || 'N/A')} → ${escapeHtml(survey.end_date || 'N/A')} ·
-                        ${respondents.length} response(s) · ${statusBadge}
-                    </div>
-                </div>
-                <div class="card-body-custom">${respondentHtml}</div>
-            </div>`;
+                    <div class="card mb-4">
+                        <div class="card-header-custom">
+                            <div class="card-title mb-1">
+                                <i class="fa-solid fa-file-lines me-2"></i> ${escapeHtml(survey.title || 'Untitled Survey')}
+                            </div>
+                            <div class="text-muted-qa small">
+                                Survey ID ${survey.survey_id} · Target: ${escapeHtml(survey.target_group || 'N/A')} ·
+                                ${escapeHtml(survey.start_date || 'N/A')} → ${escapeHtml(survey.end_date || 'N/A')} ·
+                                ${respondents.length} response(s) · ${statusBadge}
+                            </div>
+                        </div>
+                        <div class="card-body-custom">${respondentHtml}</div>
+                    </div>`;
+                }
+
+                // ── Opens modal with a single respondent's full answer table ─────────
+                function openRespondentAnswersModal(respondentId) {
+                    let foundRespondent = null;
+                    let foundSurvey     = null;
+                    let foundIdx        = -1;
+
+                    for (const survey of responseSurveyCache) {
+                        const list = Array.isArray(survey.respondents) ? survey.respondents : [];
+                        const idx  = list.findIndex(r => String(r.respondent_id) === String(respondentId));
+                        if (idx !== -1) {
+                            foundRespondent = list[idx];
+                            foundSurvey     = survey;
+                            foundIdx        = idx;
+                            break;
+                        }
+                    }
+
+                    if (!foundRespondent) {
+                        toast.error('Response details not found. Please refresh.');
+                        return;
+                    }
+
+                    const answers = Array.isArray(foundRespondent.answers) ? foundRespondent.answers : [];
+
+                    const meta = [
+                        foundRespondent.respondent_role ? `Role: ${escapeHtml(foundRespondent.respondent_role)}`             : null,
+                        foundRespondent.student_id      ? `Student ID: ${escapeHtml(String(foundRespondent.student_id))}`    : null,
+                        foundRespondent.employee_id     ? `Employee ID: ${escapeHtml(String(foundRespondent.employee_id))}` : null,
+                        `Submitted: ${escapeHtml(foundRespondent.submitted_at || 'N/A')}`,
+                    ].filter(Boolean).join(' · ');
+
+                    $('#respondentAnswersModalTitle').text(
+                        `Respondent ${foundIdx + 1} — ${escapeHtml(foundSurvey.title || 'Untitled')}`
+                    );
+                    $('#respondentAnswersModalSubtitle').text(meta);
+
+                    let bodyHtml = '';
+                    if (answers.length === 0) {
+                        bodyHtml = '<div class="text-center py-4 text-muted-qa">No answers recorded for this respondent.</div>';
+                    } else {
+                        const rows = answers.map(function(a, i) {
+                            return `
+                            <tr>
+                                <td style="width:36px;color:var(--text-secondary);font-weight:600;">${i + 1}</td>
+                                <td>${escapeHtml(a.question_text || 'Unknown')}</td>
+                                <td><strong>${escapeHtml(formatAnswerValue(a))}</strong></td>
+                                <td><small class="text-muted-qa">${escapeHtml(a.question_type || '—')}</small></td>
+                            </tr>`;
+                        }).join('');
+
+                        bodyHtml = `
+                        <div class="table-responsive">
+                            <table class="table-qa">
+                                <thead>
+                                    <tr><th>#</th><th>Question</th><th>Answer</th><th>Type</th></tr>
+                                </thead>
+                                <tbody>${rows}</tbody>
+                            </table>
+                        </div>`;
+                    }
+
+                    $('#respondentAnswersModalBody').html(bodyHtml);
+                    $('#deleteFromAnswersModalBtn').data('id', respondentId);
+
+                    bootstrap.Modal.getOrCreateInstance(
+                        document.getElementById('respondentAnswersModal')
+                    ).show();
                 }
 
                 function buildResponseSummary(surveys) {
@@ -916,24 +1012,24 @@ $pageTitle = 'Survey Management';
                     });
 
                     return `
-            <div class="col-md-4">
-                <div class="card h-100"><div class="card-body-custom">
-                    <div class="text-muted-qa small">Surveys</div>
-                    <div style="font-size:1.6rem;font-weight:700;">${surveys.length}</div>
-                </div></div>
-            </div>
-            <div class="col-md-4">
-                <div class="card h-100"><div class="card-body-custom">
-                    <div class="text-muted-qa small">Total Responses</div>
-                    <div style="font-size:1.6rem;font-weight:700;">${totalResponses}</div>
-                </div></div>
-            </div>
-            <div class="col-md-4">
-                <div class="card h-100"><div class="card-body-custom">
-                    <div class="text-muted-qa small">Total Answers Loaded</div>
-                    <div style="font-size:1.6rem;font-weight:700;">${totalAnswers}</div>
-                </div></div>
-            </div>`;
+                    <div class="col-md-4">
+                        <div class="card h-100"><div class="card-body-custom">
+                            <div class="text-muted-qa small">Surveys</div>
+                            <div style="font-size:1.6rem;font-weight:700;">${surveys.length}</div>
+                        </div></div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100"><div class="card-body-custom">
+                            <div class="text-muted-qa small">Total Responses</div>
+                            <div style="font-size:1.6rem;font-weight:700;">${totalResponses}</div>
+                        </div></div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100"><div class="card-body-custom">
+                            <div class="text-muted-qa small">Total Answers Loaded</div>
+                            <div style="font-size:1.6rem;font-weight:700;">${totalAnswers}</div>
+                        </div></div>
+                    </div>`;
                 }
 
                 function viewResponses(surveyId) {
@@ -955,9 +1051,6 @@ $pageTitle = 'Survey Management';
                         dataType: 'json',
                         success: function(response) {
                             if (response.success) {
-                                $('#accordion-respondent-' + respondentId).fadeOut(300, function() {
-                                    $(this).remove();
-                                });
                                 toast.success('Response deleted successfully', 'Deleted');
                                 responsesLoaded = false;
                                 loadAllResponses(true);
@@ -972,7 +1065,7 @@ $pageTitle = 'Survey Management';
                     });
                 }
 
-                // ── Response details modal ───────────────────────────────────────────
+                // ── Response details modal (survey questions overview) ────────────────
 
                 function openResponseDetailsModal(surveyId) {
                     const survey = responseSurveyCache.find(s => String(s.survey_id) === String(surveyId));
@@ -1007,14 +1100,14 @@ $pageTitle = 'Survey Management';
                                 '';
 
                             questionsHtml += `
-                    <div class="border rounded-3 p-3 mb-3 bg-white">
-                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                            <div style="font-weight:700;flex:1;">Q${idx + 1}. ${escapeHtml(q.question_text || 'Untitled')}</div>
-                            <div>${required}</div>
-                        </div>
-                        <div class="text-muted-qa small mb-2">Type: <strong>${escapeHtml(q.question_type || 'Unknown')}</strong></div>
-                        ${optionsList}
-                    </div>`;
+                            <div class="border rounded-3 p-3 mb-3 bg-white">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <div style="font-weight:700;flex:1;">Q${idx + 1}. ${escapeHtml(q.question_text || 'Untitled')}</div>
+                                    <div>${required}</div>
+                                </div>
+                                <div class="text-muted-qa small mb-2">Type: <strong>${escapeHtml(q.question_type || 'Unknown')}</strong></div>
+                                ${optionsList}
+                            </div>`;
                         });
                     }
 
@@ -1093,9 +1186,9 @@ $pageTitle = 'Survey Management';
 
                 function formatAnswerValue(answer) {
                     if (answer.display_value !== undefined && String(answer.display_value).trim() !== '') return answer.display_value;
-                    if (answer.rating_value !== undefined && String(answer.rating_value).trim() !== '') return answer.rating_value;
+                    if (answer.rating_value  !== undefined && String(answer.rating_value).trim()  !== '') return answer.rating_value;
                     if (answer.option_text) return answer.option_text;
-                    if (answer.text_answer) return answer.text_answer;
+                    if (answer.text_answer)  return answer.text_answer;
                     return '-';
                 }
 
@@ -1113,7 +1206,7 @@ $pageTitle = 'Survey Management';
                         '&': '&amp;',
                         '<': '&lt;',
                         '>': '&gt;'
-                    } [m]));
+                    }[m]));
                 }
 
                 function copySurveyLink(surveyId) {
@@ -1122,45 +1215,45 @@ $pageTitle = 'Survey Management';
                     if ($('#qrModal').length) $('#qrModal').remove();
 
                     $('body').append(`
-            <div class="modal fade" id="qrModal" tabindex="-1">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content" style="border-radius:var(--radius-lg);">
-                        <div class="modal-header" style="border-bottom:1px solid var(--border);padding:20px 24px;">
-                            <h5 class="modal-title" style="font-weight:700;">
-                                <i class="fa-solid fa-qrcode me-2"></i> Survey QR Code &amp; Link
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body" style="padding:24px;">
-                            <div class="text-center">
-                                <div id="qrCodeContainer" style="display:flex;justify-content:center;margin-bottom:20px;"></div>
-                                <div class="mb-3">
-                                    <label class="form-label-qa" style="font-weight:600;">Survey Link:</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control-qa" id="surveyLinkInput"
-                                               value="${escapeHtml(link)}" readonly>
-                                        <button class="btn-primary-qa" id="copyLinkBtn" style="padding:8px 16px;">
-                                            <i class="fa-solid fa-copy"></i> Copy
-                                        </button>
-                                    </div>
-                                    <div id="copyMessage" class="mt-2"
-                                         style="display:none;color:var(--success);font-size:.875rem;">
-                                        <i class="fa-solid fa-check-circle"></i> Link copied to clipboard!
+                    <div class="modal fade" id="qrModal" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content" style="border-radius:var(--radius-lg);">
+                                <div class="modal-header" style="border-bottom:1px solid var(--border);padding:20px 24px;">
+                                    <h5 class="modal-title" style="font-weight:700;">
+                                        <i class="fa-solid fa-qrcode me-2"></i> Survey QR Code &amp; Link
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body" style="padding:24px;">
+                                    <div class="text-center">
+                                        <div id="qrCodeContainer" style="display:flex;justify-content:center;margin-bottom:20px;"></div>
+                                        <div class="mb-3">
+                                            <label class="form-label-qa" style="font-weight:600;">Survey Link:</label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control-qa" id="surveyLinkInput"
+                                                       value="${escapeHtml(link)}" readonly>
+                                                <button class="btn-primary-qa" id="copyLinkBtn" style="padding:8px 16px;">
+                                                    <i class="fa-solid fa-copy"></i> Copy
+                                                </button>
+                                            </div>
+                                            <div id="copyMessage" class="mt-2"
+                                                 style="display:none;color:var(--success);font-size:.875rem;">
+                                                <i class="fa-solid fa-check-circle"></i> Link copied to clipboard!
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-center gap-2 flex-wrap">
+                                            <button type="button" class="btn-outline-qa" id="downloadQrBtn" style="padding:8px 16px;">
+                                                <i class="fa-solid fa-download"></i> Download QR Code
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="d-flex justify-content-center gap-2 flex-wrap">
-                                    <button type="button" class="btn-outline-qa" id="downloadQrBtn" style="padding:8px 16px;">
-                                        <i class="fa-solid fa-download"></i> Download QR Code
-                                    </button>
+                                <div class="modal-footer" style="border-top:1px solid var(--border);padding:16px 24px;">
+                                    <button type="button" class="btn-outline-qa" data-bs-dismiss="modal">Close</button>
                                 </div>
                             </div>
                         </div>
-                        <div class="modal-footer" style="border-top:1px solid var(--border);padding:16px 24px;">
-                            <button type="button" class="btn-outline-qa" data-bs-dismiss="modal">Close</button>
-                        </div>
-                    </div>
-                </div>
-            </div>`);
+                    </div>`);
 
                     const modal = new bootstrap.Modal(document.getElementById('qrModal'));
                     modal.show();
@@ -1203,14 +1296,14 @@ $pageTitle = 'Survey Management';
                     if (!container) return;
 
                     const canvas = container.querySelector('canvas');
-                    const img = container.querySelector('img');
-                    let dataUrl = '';
+                    const img    = container.querySelector('img');
+                    let dataUrl  = '';
 
                     if (canvas) {
                         dataUrl = canvas.toDataURL('image/png');
                     } else if (img) {
                         const tempCanvas = document.createElement('canvas');
-                        tempCanvas.width = img.naturalWidth || img.width || 200;
+                        tempCanvas.width  = img.naturalWidth  || img.width  || 200;
                         tempCanvas.height = img.naturalHeight || img.height || 200;
                         const ctx = tempCanvas.getContext('2d');
                         if (!ctx) return;
@@ -1224,7 +1317,7 @@ $pageTitle = 'Survey Management';
                     }
 
                     const a = document.createElement('a');
-                    a.href = dataUrl;
+                    a.href     = dataUrl;
                     a.download = `survey-qr-${surveyId}.png`;
                     document.body.appendChild(a);
                     a.click();
