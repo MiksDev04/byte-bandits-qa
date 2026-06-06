@@ -974,10 +974,7 @@ $pageTitle = 'KPIs Management';
                             <p><strong>Field:</strong> ${fieldLabel}</p>
                             <p><strong>Value:</strong> <span class="import-value">${actualValue}</span></p>
                             <hr>
-                            <details>
-                                <summary style="cursor:pointer;color:var(--primary);">View Full API Response</summary>
-                                <pre style="background:#f8f9fa;padding:10px;border-radius:8px;font-size:12px;max-height:300px;overflow:auto;margin-top:10px;">${JSON.stringify(response.data, null, 2)}</pre>
-                            </details>
+                            
                         </div>
                     `;
                         $('#import-data-preview').html(previewHtml).show();
