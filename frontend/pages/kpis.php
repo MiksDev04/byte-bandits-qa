@@ -610,9 +610,6 @@ $pageTitle = 'KPIs Management';
                         <button class="btn-outline-qa btn-sm" onclick="editRecord(${record.record_id})" style="padding:4px 8px;margin-right:5px;">
                             <i class="fa-solid fa-edit"></i>
                         </button>
-                        <button class="btn-outline-qa btn-sm" onclick="deleteRecord(${record.record_id})" style="padding:4px 8px;color:#dc3545;">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
                     </td>
                 </tr>
             `;
